@@ -1,0 +1,6 @@
+server:
+  port: 5050
+
+logging:
+  level:
+    com.netflix.discovery: OFF
