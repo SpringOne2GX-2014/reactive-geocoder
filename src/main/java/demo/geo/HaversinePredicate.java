@@ -1,6 +1,8 @@
 package demo.geo;
 
 import demo.domain.Location;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.Point;
 import reactor.function.Predicate;
@@ -11,6 +13,8 @@ import reactor.function.Predicate;
 public class HaversinePredicate implements Predicate<Location> {
 
 	private static final double EARTH_RADIUS_IN_METERS = 6372797.560856;
+
+	private final Logger log = LoggerFactory.getLogger(getClass());
 
 	private final Point    point;
 	private final Distance distance;
@@ -31,6 +35,10 @@ public class HaversinePredicate implements Predicate<Location> {
 		double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
 				Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
 		double c = 2 * Math.asin(Math.sqrt(a));
+
+		if (log.isDebugEnabled()) {
+			log.debug("target distance: {}, p2p distance: {}", distance.getValue(), (EARTH_RADIUS_IN_METERS * c));
+		}
 
 		return (EARTH_RADIUS_IN_METERS * c) <= distance.getValue();
 	}
