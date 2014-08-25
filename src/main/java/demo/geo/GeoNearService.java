@@ -1,42 +1,36 @@
 package demo.geo;
 
-import com.gs.collections.api.RichIterable;
-import com.gs.collections.api.multimap.MutableMultimap;
-import com.gs.collections.impl.multimap.set.UnifiedSetMultimap;
+import com.gs.collections.impl.map.mutable.UnifiedMap;
 import demo.domain.Location;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationListener;
-import org.springframework.data.mongodb.core.mapping.event.AfterSaveEvent;
 import org.springframework.stereotype.Service;
-import reactor.core.Reactor;
-import reactor.event.Event;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Jon Brisbin
  */
 @Service
-public class GeoNearService implements ApplicationListener<AfterSaveEvent<Location>> {
+public class GeoNearService {
 
-	private final MutableMultimap<String, Location> nearbyCache = UnifiedSetMultimap.newMultimap();
+	private final ConcurrentHashMap<String, Map<String, Location>> nearbyCache = new ConcurrentHashMap<>();
 
-	private final Reactor eventBus;
-
-	@Autowired
-	public GeoNearService(Reactor eventBus) {
-		this.eventBus = eventBus;
+	public void maybeAddGeoNear(Location loc1, Location loc2) {
+		Map<String, Location> locs = findNear(loc1.getId());
+		locs.put(loc2.getId(), loc2);
 	}
 
-	@Override
-	public void onApplicationEvent(AfterSaveEvent<Location> event) {
-		eventBus.notify("location.save", Event.wrap(event.getSource()));
+	public Iterable<Location> findGeoNear(Location loc) {
+		Map<String, Location> locs = findNear(loc.getId());
+		return locs.values();
 	}
 
-	public void addGeoNear(Location l1, Location l2) {
-		nearbyCache.put(l1.getId(), l2);
-	}
-
-	public RichIterable<Location> getGeoNear(Location loc) {
-		return nearbyCache.get(loc.getId());
+	private Map<String, Location> findNear(String id) {
+		Map<String, Location> locs;
+		if (null == (locs = nearbyCache.get(id))) {
+			locs = nearbyCache.computeIfAbsent(id, s -> UnifiedMap.newMap());
+		}
+		return locs;
 	}
 
 }

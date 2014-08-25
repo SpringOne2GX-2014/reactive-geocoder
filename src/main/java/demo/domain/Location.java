@@ -12,6 +12,7 @@ public class Location implements Comparable<Location> {
 
 	@Id
 	private String id;
+	private String name;
 	private String address;
 	private String city;
 	private String province;
@@ -23,6 +24,15 @@ public class Location implements Comparable<Location> {
 
 	public String getId() {
 		return id;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public Location setName(String name) {
+		this.name = name;
+		return this;
 	}
 
 	public String getAddress() {

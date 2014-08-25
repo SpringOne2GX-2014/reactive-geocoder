@@ -2,8 +2,6 @@ package demo;
 
 import demo.domain.Location;
 import demo.domain.LocationRepository;
-import demo.geo.GeoNearService;
-import demo.geo.HaversinePredicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -12,7 +10,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.GeoModule;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import ratpack.func.Action;
@@ -21,11 +18,13 @@ import ratpack.spring.annotation.EnableRatpack;
 import reactor.core.Environment;
 import reactor.core.Reactor;
 import reactor.core.spec.Reactors;
+import reactor.event.registry.Registration;
+import reactor.function.Consumer;
 import reactor.rx.Stream;
 import reactor.rx.spec.Streams;
 import reactor.spring.context.config.EnableReactor;
 
-import java.util.function.Function;
+import java.util.concurrent.TimeUnit;
 
 @Configuration
 @ComponentScan
@@ -44,18 +43,17 @@ public class ProcessorApplication {
 	}
 
 	@Bean
-	public Function<Location, Stream<Location>> streamFactory(Environment env,
-	                                                          LocationRepository locations,
-	                                                          GeoNearService geoNear) {
-		return loc1 -> Streams.<Location>defer(env)
-		                      .consume(loc2 -> log.info("loc1: {}, loc2: {}", loc1, loc2))
-		                      .filter(loc2 -> {
-			                      return !loc1.getId().equals(loc2.getId());
-		                      })
-		                      .consume(loc2 -> log.info("after filter[0]: {}", loc2))
-		                      .filter(new HaversinePredicate(loc1.getCoordinates(), new Distance(10)))
-		                      .consume(loc2 -> log.info("after filter[1]: {}", loc2))
-		                      .consume(loc2 -> geoNear.addGeoNear(loc1, loc2));
+	public Stream<Location> locationEventStream(Environment env) {
+		return Streams.defer(env);
+	}
+
+	@Bean
+	public Registration<? extends Consumer<Long>> periodicRetriever(Environment env,
+	                                                                LocationRepository locations,
+	                                                                Stream<Location> locationStream) {
+		return env.getRootTimer()
+		          .schedule(now -> locations.findAll().forEach(locationStream::broadcastNext),
+		                    5, TimeUnit.SECONDS);
 	}
 
 	@Bean
@@ -67,8 +65,9 @@ public class ProcessorApplication {
 			// POST '/location'
 			chain.post("location", restApi.postLocation());
 
-			// REST '/location/:id'
-			chain.handler("location/:id", restApi.location());
+			// GET '/location/:id'
+			chain.get("location/:id", restApi.location());
+
 			chain.get("location/:id/nearby", restApi.nearby());
 		};
 	}

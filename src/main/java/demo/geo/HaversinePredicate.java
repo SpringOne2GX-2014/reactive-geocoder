@@ -12,7 +12,7 @@ import reactor.function.Predicate;
  */
 public class HaversinePredicate implements Predicate<Location> {
 
-	private static final double EARTH_RADIUS_IN_METERS = 6372797.560856;
+	private static final double EARTH_RADIUS_IN_KM = 6372.797560856;
 
 	private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -26,21 +26,35 @@ public class HaversinePredicate implements Predicate<Location> {
 
 	@Override
 	public boolean test(Location location) {
-		double lat1 = point.getX() / 1E6;
-		double lat2 = location.getCoordinates().getX() / 1E6;
-		double lon1 = point.getY() / 1E6;
-		double lon2 = location.getCoordinates().getY() / 1E6;
+		if (point.getX() == location.getCoordinates().getX()
+				&& point.getY() == location.getCoordinates().getY()) {
+			return false;
+		}
+		double lat1 = point.getX();
+		double lat2 = location.getCoordinates().getX();
+		double lon1 = point.getY();
+		double lon2 = location.getCoordinates().getY();
+
 		double dLat = Math.toRadians(lat2 - lat1);
 		double dLon = Math.toRadians(lon2 - lon1);
-		double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-				Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+		lat1 = Math.toRadians(lat1);
+		lat2 = Math.toRadians(lat2);
+
+		double a = Math.sin(dLat / 2)
+				* Math.sin(dLat / 2)
+				+ Math.sin(dLon / 2)
+				* Math.sin(dLon / 2)
+				* Math.cos(lat1)
+				* Math.cos(lat2);
 		double c = 2 * Math.asin(Math.sqrt(a));
 
-		if (log.isDebugEnabled()) {
-			log.debug("target distance: {}, p2p distance: {}", distance.getValue(), (EARTH_RADIUS_IN_METERS * c));
+		if (log.isInfoEnabled()) {
+			log.info("dLat: {}, dLon: {}", dLat, dLon);
+			log.info("c: {}", c);
+			log.info("target distance: {}, p2p distance: {}", distance.getValue(), (EARTH_RADIUS_IN_KM * c));
 		}
 
-		return (EARTH_RADIUS_IN_METERS * c) <= distance.getValue();
+		return (EARTH_RADIUS_IN_KM * c) <= distance.getNormalizedValue();
 	}
 
 }
