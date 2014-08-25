@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+				 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>org.demo</groupId>
 	<artifactId>demo</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-    <packaging>jar</packaging>
+	<packaging>jar</packaging>
 
 	<name>processor</name>
 	<description>Demo Processor project</description>
@@ -15,7 +15,8 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>1.1.5.RELEASE</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<relativePath/>
+		<!-- lookup parent from repository -->
 	</parent>
 
 	<dependencyManagement>
@@ -30,7 +31,19 @@
 		</dependencies>
 	</dependencyManagement>
 
+	<repositories>
+		<repository>
+			<id>spring-snapshot</id>
+			<name>Spring Snapshots</name>
+			<url>https://repo.spring.io/libs-snapshot</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
+
 	<dependencies>
+		<!-- Spring Platform Netflix -->
 		<dependency>
 			<groupId>org.springframework.platform</groupId>
 			<artifactId>spring-platform-starter-eureka</artifactId>
@@ -45,15 +58,45 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+
+		<!-- Spring Boot -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-mongodb</artifactId>
 		</dependency>
+
+		<!-- Ratpack (HTTP) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-ratpack</artifactId>
 			<version>${spring-boot-ratpack.version}</version>
 		</dependency>
+
+		<!-- Reactor -->
+		<dependency>
+			<groupId>org.projectreactor.spring</groupId>
+			<artifactId>reactor-spring-context</artifactId>
+			<version>${reactor.version}</version>
+		</dependency>
+
+		<!-- Google APIs -->
+		<dependency>
+			<groupId>com.google.api-client</groupId>
+			<artifactId>google-api-client</artifactId>
+			<version>${google.api.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.api-client</groupId>
+			<artifactId>google-api-client-jackson2</artifactId>
+			<version>${google.api.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.apis</groupId>
+			<artifactId>google-api-services-mapsengine</artifactId>
+			<version>v1-rev34-1.19.0</version>
+		</dependency>
+
+		<!-- Testing -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
@@ -66,6 +109,8 @@
 		<start-class>demo.Application</start-class>
 		<java.version>1.8</java.version>
 		<spring-boot-ratpack.version>1.0.0.BUILD-SNAPSHOT</spring-boot-ratpack.version>
+		<reactor.version>2.0.0.BUILD-SNAPSHOT</reactor.version>
+		<google.api.version>1.18.0-rc</google.api.version>
 	</properties>
 
 	<build>

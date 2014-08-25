@@ -1,6 +1,13 @@
 server:
   port: 5050
 
+google:
+  apiKey: AIzaSyAZJwODVuYwWPhg1IEbANIz34LLExBfGnQ
+
 logging:
   level:
     com.netflix.discovery: OFF
+
+http:
+  mappers:
+    jsonPrettyPrint: true
