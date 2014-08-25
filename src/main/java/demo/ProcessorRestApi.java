@@ -63,6 +63,7 @@ public class ProcessorRestApi {
 
 			// Only add Locations <= 10km away from my Location
 			locationEventStream
+					.filter(l -> !loc.getId().equals(l.getId()))
 					.filter(new HaversinePredicate(loc.getCoordinates(), distance))
 					.consume(loc2 -> geoNear.maybeAddGeoNear(loc, loc2));
 
