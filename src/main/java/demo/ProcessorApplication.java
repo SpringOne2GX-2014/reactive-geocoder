@@ -1,9 +1,6 @@
 package demo;
 
 import demo.domain.Location;
-import demo.domain.LocationRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -16,15 +13,9 @@ import ratpack.func.Action;
 import ratpack.handling.Chain;
 import ratpack.spring.annotation.EnableRatpack;
 import reactor.core.Environment;
-import reactor.core.Reactor;
-import reactor.core.spec.Reactors;
-import reactor.event.registry.Registration;
-import reactor.function.Consumer;
 import reactor.rx.Stream;
 import reactor.rx.spec.Streams;
 import reactor.spring.context.config.EnableReactor;
-
-import java.util.concurrent.TimeUnit;
 
 @Configuration
 @ComponentScan
@@ -35,40 +26,25 @@ import java.util.concurrent.TimeUnit;
 @EnableReactor
 public class ProcessorApplication {
 
-	private Logger log = LoggerFactory.getLogger(getClass());
-
-	@Bean
-	public Reactor eventBus(Environment env) {
-		return Reactors.reactor(env, Environment.WORK_QUEUE);
-	}
-
 	@Bean
 	public Stream<Location> locationEventStream(Environment env) {
-		return Streams.defer(env);
-	}
-
-	@Bean
-	public Registration<? extends Consumer<Long>> periodicRetriever(Environment env,
-	                                                                LocationRepository locations,
-	                                                                Stream<Location> locationStream) {
-		return env.getRootTimer()
-		          .schedule(now -> locations.findAll().forEach(locationStream::broadcastNext),
-		                    5, TimeUnit.SECONDS);
+		return Streams.defer(env, env.getDispatcher(Environment.RING_BUFFER));
 	}
 
 	@Bean
 	public Action<Chain> handlers(ProcessorRestApi restApi) {
 		return (chain) -> {
-			// GET '/'
+			// Page through all Locations
 			chain.get(restApi.root());
 
-			// POST '/location'
-			chain.post("location", restApi.postLocation());
+			// Create new Location
+			chain.post("location", restApi.createLocation());
 
-			// GET '/location/:id'
-			chain.get("location/:id", restApi.location());
+			// Retrieve existing Location
+			chain.get("location/:id", restApi.retrieveLocation());
 
-			chain.get("location/:id/nearby", restApi.nearby());
+			// Find nearby Locations
+			chain.get("location/:id/nearby", restApi.retrieveNearby());
 		};
 	}
 

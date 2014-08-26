@@ -2,8 +2,8 @@ package demo;
 
 import demo.domain.Location;
 import demo.domain.LocationRepository;
+import demo.geo.GeoNearPredicate;
 import demo.geo.GeoNearService;
-import demo.geo.HaversinePredicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +15,7 @@ import ratpack.handling.Context;
 import ratpack.handling.Handler;
 import ratpack.util.MultiValueMap;
 import reactor.rx.Stream;
+import reactor.rx.spec.Streams;
 import reactor.util.StringUtils;
 
 import static ratpack.jackson.Jackson.fromJson;
@@ -26,20 +27,24 @@ import static ratpack.jackson.Jackson.json;
 @Component
 public class ProcessorRestApi {
 
-	private final Logger   log      = LoggerFactory.getLogger(getClass());
-	private final Distance distance = new Distance(10);
+	private final Logger log = LoggerFactory.getLogger(getClass());
 
 	private final LocationRepository locations;
 	private final GeoNearService     geoNear;
 	private final Stream<Location>   locationEventStream;
+	private final ProcessorConfig    config;
+	private final Distance           distance;
 
 	@Autowired
 	public ProcessorRestApi(LocationRepository locations,
 	                        GeoNearService geoNear,
-	                        Stream<Location> locationEventStream) {
+	                        Stream<Location> locationEventStream,
+	                        ProcessorConfig config) {
 		this.locations = locations;
 		this.locationEventStream = locationEventStream;
 		this.geoNear = geoNear;
+		this.config = config;
+		this.distance = new Distance(config.getDefaultDistance());
 	}
 
 	public Handler root() {
@@ -47,7 +52,7 @@ public class ProcessorRestApi {
 			// Support paging in the URL query string
 			int page = pageNumber(ctx);
 
-			Page<Location> p = locations.findAll(new PageRequest(page, 5));
+			Page<Location> p = locations.findAll(new PageRequest(page, config.getPageSize()));
 
 			// Create next/prev Link headers for paging
 			maybeAddPageLinks(ctx, p);
@@ -56,25 +61,26 @@ public class ProcessorRestApi {
 		};
 	}
 
-	public Handler postLocation() {
+	public Handler createLocation() {
 		return ctx -> {
 			// Save a new Location
 			Location loc = locations.save(ctx.parse(fromJson(Location.class)));
 
-			// Only add Locations <= 10km away from my Location
-			locationEventStream
-					.filter(l -> !loc.getId().equals(l.getId()))
-					.filter(new HaversinePredicate(loc.getCoordinates(), distance))
-					.consume(loc2 -> geoNear.maybeAddGeoNear(loc, loc2));
-
+			// Broadcast to others
 			locationEventStream.broadcastNext(loc);
 
-			// Point to REST URL
-			ctx.redirect(303, "http://localhost:5050/location/" + loc.getId());
+			// Only add Locations <= 10km away from my Location
+			locationEventStream
+					.merge(Streams.defer(locations.findAll()))
+					.filter(new GeoNearPredicate(loc.getCoordinates(), distance))
+					.consume(loc2 -> geoNear.addGeoNear(loc, loc2));
+
+			// Redirect to REST URL
+			ctx.redirect(303, config.getBaseUri() + "/location/" + loc.getId());
 		};
 	}
 
-	public Handler location() {
+	public Handler retrieveLocation() {
 		return ctx -> {
 			String id = ctx.getPathTokens().get("id");
 			Location loc = locations.findOne(id);
@@ -87,7 +93,7 @@ public class ProcessorRestApi {
 		};
 	}
 
-	public Handler nearby() {
+	public Handler retrieveNearby() {
 		return ctx -> {
 			String id = ctx.getPathTokens().get("id");
 			Location loc = locations.findOne(id);
@@ -100,7 +106,7 @@ public class ProcessorRestApi {
 		};
 	}
 
-	private static int pageNumber(Context ctx) {
+	private int pageNumber(Context ctx) {
 		MultiValueMap<String, String> params = ctx.getRequest().getQueryParams();
 		int page = 0;
 		if (params.containsKey("page")) {
@@ -109,10 +115,12 @@ public class ProcessorRestApi {
 		return page;
 	}
 
-	private static void maybeAddPageLinks(Context ctx, Page<?> page) {
+	private void maybeAddPageLinks(Context ctx, Page<?> page) {
+		String baseUri = config.getBaseUri() + ctx.getRequest().getUri() + "?page=";
+
 		StringBuffer linkHeader = new StringBuffer();
 		if (page.hasPrevious()) {
-			linkHeader.append("<http://localhost:5050/?page=").append(page.getNumber() - 1).append(">; rel=\"previous\"");
+			linkHeader.append("<").append(baseUri).append(page.getNumber() - 1).append(">; rel=\"previous\"");
 		}
 		if (page.hasNext()) {
 			if (StringUtils.hasText(linkHeader.toString())) {

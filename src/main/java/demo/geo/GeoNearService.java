@@ -15,17 +15,17 @@ public class GeoNearService {
 
 	private final ConcurrentHashMap<String, Map<String, Location>> nearbyCache = new ConcurrentHashMap<>();
 
-	public void maybeAddGeoNear(Location loc1, Location loc2) {
-		Map<String, Location> locs = findNear(loc1.getId());
+	public void addGeoNear(Location loc1, Location loc2) {
+		Map<String, Location> locs = getNearby(loc1.getId());
 		locs.put(loc2.getId(), loc2);
 	}
 
 	public Iterable<Location> findGeoNear(Location loc) {
-		Map<String, Location> locs = findNear(loc.getId());
+		Map<String, Location> locs = getNearby(loc.getId());
 		return locs.values();
 	}
 
-	private Map<String, Location> findNear(String id) {
+	private Map<String, Location> getNearby(String id) {
 		Map<String, Location> locs;
 		if (null == (locs = nearbyCache.get(id))) {
 			locs = nearbyCache.computeIfAbsent(id, s -> UnifiedMap.newMap());

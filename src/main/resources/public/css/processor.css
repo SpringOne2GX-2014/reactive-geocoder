@@ -1,0 +1,32 @@
+#map-canvas {
+    height: 250px;
+}
+
+input {
+    margin-bottom: 25px;
+}
+
+input#city {
+    float: left;
+    width: 50%;
+}
+
+input#state {
+    float: left;
+    width: 30%;
+}
+
+input#zipcode {
+    float: left;
+    width: 20%;
+}
+
+.lat-lon {
+    font-size: 2em;
+}
+
+.geocode-btn {
+    font-size: 1.5em;
+    float: right;
+    margin: 15px;
+}
