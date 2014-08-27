@@ -1,8 +1,5 @@
 server:
-  port: 5050
-
-google:
-  apiKey: AIzaSyAZJwODVuYwWPhg1IEbANIz34LLExBfGnQ
+  port: ${PORT:5050}
 
 logging:
   level:

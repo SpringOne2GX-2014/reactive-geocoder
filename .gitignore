@@ -13,3 +13,6 @@ bin
 git.properties
 .idea
 *.iml
+*.ipr
+*.iws
+.DS_Store

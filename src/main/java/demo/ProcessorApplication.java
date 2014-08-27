@@ -34,8 +34,7 @@ public class ProcessorApplication {
 	@Bean
 	public Action<Chain> handlers(ProcessorRestApi restApi) {
 		return (chain) -> {
-			// Page through all Locations
-			chain.get(restApi.root());
+			chain.get(ctx -> ctx.render(ctx.file("public/index.html")));
 
 			// Create new Location
 			chain.post("location", restApi.createLocation());

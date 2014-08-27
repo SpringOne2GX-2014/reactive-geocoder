@@ -4,19 +4,13 @@ import demo.domain.Location;
 import demo.domain.LocationRepository;
 import demo.geo.GeoNearPredicate;
 import demo.geo.GeoNearService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.geo.Distance;
 import org.springframework.stereotype.Component;
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
-import ratpack.util.MultiValueMap;
 import reactor.rx.Stream;
 import reactor.rx.spec.Streams;
-import reactor.util.StringUtils;
 
 import static ratpack.jackson.Jackson.fromJson;
 import static ratpack.jackson.Jackson.json;
@@ -26,8 +20,6 @@ import static ratpack.jackson.Jackson.json;
  */
 @Component
 public class ProcessorRestApi {
-
-	private final Logger log = LoggerFactory.getLogger(getClass());
 
 	private final LocationRepository locations;
 	private final GeoNearService     geoNear;
@@ -47,20 +39,6 @@ public class ProcessorRestApi {
 		this.distance = new Distance(config.getDefaultDistance());
 	}
 
-	public Handler root() {
-		return ctx -> {
-			// Support paging in the URL query string
-			int page = pageNumber(ctx);
-
-			Page<Location> p = locations.findAll(new PageRequest(page, config.getPageSize()));
-
-			// Create next/prev Link headers for paging
-			maybeAddPageLinks(ctx, p);
-
-			ctx.render(json(p));
-		};
-	}
-
 	public Handler createLocation() {
 		return ctx -> {
 			// Save a new Location
@@ -71,9 +49,10 @@ public class ProcessorRestApi {
 
 			// Only add Locations <= 10km away from my Location
 			locationEventStream
-					.merge(Streams.defer(locations.findAll()))
-					.filter(new GeoNearPredicate(loc.getCoordinates(), distance))
-					.consume(loc2 -> geoNear.addGeoNear(loc, loc2));
+					.merge(Streams.defer(locations.findAll())) // historical data
+					.filter(l -> !loc.getId().equals(l.getId())) // not us
+					.filter(new GeoNearPredicate(loc.getCoordinates(), distance)) // within 10km
+					.consume(loc2 -> geoNear.addGeoNear(loc, loc2)); // add to cache
 
 			// Redirect to REST URL
 			ctx.redirect(303, config.getBaseUri() + "/location/" + loc.getId());
@@ -82,12 +61,8 @@ public class ProcessorRestApi {
 
 	public Handler retrieveLocation() {
 		return ctx -> {
-			String id = ctx.getPathTokens().get("id");
-			Location loc = locations.findOne(id);
-			if (null == loc) {
-				// We must have a real Location already
-				ctx.error(new IllegalArgumentException("Location with id " + id + " not found"));
-			} else {
+			Location loc;
+			if (null != (loc = findLocation(ctx))) {
 				ctx.render(json(loc));
 			}
 		};
@@ -95,42 +70,21 @@ public class ProcessorRestApi {
 
 	public Handler retrieveNearby() {
 		return ctx -> {
-			String id = ctx.getPathTokens().get("id");
-			Location loc = locations.findOne(id);
-			if (null == loc) {
-				ctx.error(new IllegalArgumentException("Location with id " + id + " not found"));
-				return;
+			Location loc;
+			if (null != (loc = findLocation(ctx))) {
+				ctx.render(json(geoNear.findGeoNear(loc)));
 			}
-
-			ctx.render(json(geoNear.findGeoNear(loc)));
 		};
 	}
 
-	private int pageNumber(Context ctx) {
-		MultiValueMap<String, String> params = ctx.getRequest().getQueryParams();
-		int page = 0;
-		if (params.containsKey("page")) {
-			page = Integer.parseInt(params.get("page"));
+	private Location findLocation(Context ctx) {
+		String id = ctx.getPathTokens().get("id");
+		Location loc = locations.findOne(id);
+		if (null == loc) {
+			// We must have a real Location already
+			ctx.error(new IllegalArgumentException("Location with id " + id + " not found"));
 		}
-		return page;
-	}
-
-	private void maybeAddPageLinks(Context ctx, Page<?> page) {
-		String baseUri = config.getBaseUri() + ctx.getRequest().getUri() + "?page=";
-
-		StringBuffer linkHeader = new StringBuffer();
-		if (page.hasPrevious()) {
-			linkHeader.append("<").append(baseUri).append(page.getNumber() - 1).append(">; rel=\"previous\"");
-		}
-		if (page.hasNext()) {
-			if (StringUtils.hasText(linkHeader.toString())) {
-				linkHeader.append(", ");
-			}
-			linkHeader.append("<http://localhost:5050/?page=").append(page.getNumber() + 1).append(">; rel=\"next\"");
-		}
-		if (StringUtils.hasText(linkHeader.toString())) {
-			ctx.getResponse().getHeaders().set("Link", linkHeader.toString());
-		}
+		return loc;
 	}
 
 }
