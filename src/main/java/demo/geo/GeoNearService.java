@@ -25,6 +25,10 @@ public class GeoNearService {
 		return locs.values();
 	}
 
+	public void clearGeoNear(Location loc) {
+		nearbyCache.remove(loc.getId());
+	}
+
 	private Map<String, Location> getNearby(String id) {
 		Map<String, Location> locs;
 		if (null == (locs = nearbyCache.get(id))) {

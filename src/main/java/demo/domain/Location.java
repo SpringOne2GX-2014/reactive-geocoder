@@ -1,8 +1,9 @@
 package demo.domain;
 
 import org.springframework.data.annotation.Id;
-import org.springframework.data.geo.Point;
+import org.springframework.data.mongodb.core.index.GeoSpatialIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import reactor.util.ObjectUtils;
 
 /**
  * @author Jon Brisbin
@@ -11,13 +12,14 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class Location implements Comparable<Location> {
 
 	@Id
-	private String id;
-	private String name;
-	private String address;
-	private String city;
-	private String province;
-	private String postalCode;
-	private Point  coordinates;
+	private String   id;
+	private String   name;
+	private String   address;
+	private String   city;
+	private String   province;
+	private String   postalCode;
+	@GeoSpatialIndexed
+	private double[] coordinates;
 
 	public Location() {
 	}
@@ -71,11 +73,11 @@ public class Location implements Comparable<Location> {
 		return this;
 	}
 
-	public Point getCoordinates() {
+	public double[] getCoordinates() {
 		return coordinates;
 	}
 
-	public Location setCoordinates(Point coordinates) {
+	public Location setCoordinates(double[] coordinates) {
 		this.coordinates = coordinates;
 		return this;
 	}
@@ -104,7 +106,7 @@ public class Location implements Comparable<Location> {
 		result = 31 * result + (city != null ? city.hashCode() : 0);
 		result = 31 * result + (province != null ? province.hashCode() : 0);
 		result = 31 * result + (postalCode != null ? postalCode.hashCode() : 0);
-		result = 31 * result + (coordinates != null ? coordinates.hashCode() : 0);
+		result = 31 * result + (coordinates != null ? ObjectUtils.nullSafeHashCode(coordinates) : 0);
 		return result;
 	}
 
@@ -129,7 +131,7 @@ public class Location implements Comparable<Location> {
 				", city='" + city + '\'' +
 				", province='" + province + '\'' +
 				", postalCode='" + postalCode + '\'' +
-				", coordinates=" + coordinates +
+				", coordinates=" + ObjectUtils.nullSafeToString(coordinates) +
 				'}';
 	}
 

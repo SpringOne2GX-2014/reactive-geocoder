@@ -9,15 +9,18 @@
     <!-- Google Maps -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD9LhM4hqN-dmUN5hQQAyUIRzu0ATUrBOc"></script>
 
-    <!-- Bootstrap -->
+    <!-- Bootstrap, jQuery UI -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link href="css/bootstrap-theme.min.css" rel="stylesheet">
+    <link href="css/jquery-ui.min.css" rel="stylesheet">
+    <link href="css/jquery-ui.structure.min.css" rel="stylesheet">
+    <link href="css/jquery-ui.theme.min.css" rel="stylesheet">
 
     <!-- Processor App -->
     <link href="css/processor.css" rel="stylesheet">
 
     <script type="text/javascript">
-        var map, geocoder, myMarker, myLocationId;
+        var map, geocoder, myMarker, myLocationId, poller;
     </script>
 </head>
 <body>
@@ -32,19 +35,42 @@
 
     <form name="location" action="#">
         <div class="input-group-lg">
-            <input id="name" type="text" class="form-control" placeholder="Name, Company" data-bind="textInput: name"/>
-            <input id="address" type="text" class="form-control" placeholder="Address" data-bind="textInput: address"/>
-            <input id="city" type="text" class="form-control" placeholder="City" data-bind="textInput: city"/>
-            <input id="state" type="text" class="form-control" placeholder="State" data-bind="textInput: state"/>
-            <input id="zipcode" type="text" class="form-control" placeholder="Zipcode" data-bind="textInput: zip"/>
+            <input id="name"
+                   type="text"
+                   class="form-control"
+                   placeholder="Name, Company"
+                   data-bind="textInput: name"/>
+            <input id="address"
+                   type="text"
+                   class="form-control"
+                   placeholder="Address"
+                   data-bind="textInput: address"/>
+            <input id="city"
+                   type="text"
+                   class="form-control"
+                   placeholder="City"
+                   data-bind="textInput: city"/>
+            <input id="state"
+                   type="text"
+                   class="form-control"
+                   placeholder="State"
+                   data-bind="textInput: state"/>
+            <input id="zipcode"
+                   type="text"
+                   class="form-control"
+                   placeholder="Zipcode"
+                   data-bind="textInput: zip"/>
         </div>
+
+        <h3>Distance: <span data-bind="text: distance">10</span>km</h3>
+
+        <div id="distance-slider"></div>
     </form>
     <div class="clearfix"></div>
 
-    <button type="button" class="btn btn-default right geocode-btn" data-bind="click: geocode">Geocode &raquo;</button>
-    <div class="clearfix"></div>
-
     <div class="well well-lg text-center lat-lon">
+        <button type="button" class="btn btn-default geocode-btn" data-bind="click: geocode">Set
+            Location &raquo;</button>
         <span data-bind="text: lat"> </span> N / <span data-bind="text: lon"> </span> W
     </div>
 
@@ -66,7 +92,7 @@
             <td><span data-bind="text: name"> </span></td>
             <td><span data-bind="text: city"> </span></td>
             <td><span data-bind="text: province"> </span></td>
-            <td>
+            <td class="set-marker-cell">
                 <button type="button" class="btn btn-default" data-bind="click: $parent.setMarker">Mark</button>
             </td>
         </tr>
@@ -77,6 +103,7 @@
 
 <!-- dependencies -->
 <script src="https://cdn.jsdelivr.net/jquery/1.11.1/jquery.min.js"></script>
+<script src="js/jquery-ui.min.js"></script>
 <script src="https://cdn.jsdelivr.net/knockout/3.2.0/knockout.js"></script>
 
 <!-- Bootstrap -->

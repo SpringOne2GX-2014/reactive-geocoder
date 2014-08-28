@@ -21,12 +21,21 @@ input#zipcode {
     width: 20%;
 }
 
+input#distance {
+    width: 6em;
+}
+
 .lat-lon {
     font-size: 2em;
 }
 
 .geocode-btn {
-    font-size: 1.5em;
-    float: right;
-    margin: 15px;
+}
+
+.set-marker-cell {
+    width: 2em;
+}
+
+#distance-slider {
+    margin-bottom: 25px;
 }

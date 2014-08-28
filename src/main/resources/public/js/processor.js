@@ -6,7 +6,17 @@ $(function () {
   map = new google.maps.Map($("#map-canvas")[0], mapOpts);
   geocoder = new google.maps.Geocoder();
 
-  ko.applyBindings(new Location());
+  var loc = new Location();
+
+  $("#distance-slider").slider({
+    step: 10,
+    min: 10,
+    max: 100,
+    slide: function (ev, ui) {
+      loc.distance(ui.value);
+    }
+  });
+  ko.applyBindings(loc);
 });
 
 /**
@@ -30,6 +40,7 @@ var Location = function () {
   self.lat = ko.observable();
   self.lon = ko.observable();
   self.nearby = ko.observableArray();
+  self.distance = ko.observable(10);
 
   self.addressCompact = ko.pureComputed(function () {
     var addr = "";
@@ -51,13 +62,12 @@ var Location = function () {
   self.setMarker = function (loc, ev) {
     var marker = new google.maps.Marker({
       map: map,
-      position: new google.maps.LatLng(loc.coordinates.y, loc.coordinates.x),
+      position: new google.maps.LatLng(loc.coordinates[1], loc.coordinates[0]),
       title: loc.name
     });
   }
 
   self.geocode = function () {
-    console.log("geocoding...");
     geocoder.geocode({ address: self.addressCompact() }, function (results, status) {
       if (status != google.maps.GeocoderStatus.OK) {
         console.log("error geocoding: ", status, results);
@@ -74,23 +84,29 @@ var Location = function () {
       console.log("self: ", ko.toJSON(self));
       console.log("location: ", JSON.stringify(loc));
 
+      var newLoc = {
+        name: self.name(),
+        address: self.address(),
+        city: self.city(),
+        province: self.state(),
+        postalCode: self.zip(),
+        coordinates: [loc.B, loc.k]
+      };
+
       if (myMarker) {
         // this is an update
         myMarker.setMap(null);
-      } else {
-        // this is a new location
-        var newLoc = {
-          name: self.name(),
-          address: self.address(),
-          city: self.city(),
-          province: self.state(),
-          postalCode: self.zip(),
-          coordinates: {
-            x: loc.B,
-            y: loc.k
-          }
-        };
 
+        $.ajax("/location/" + myLocationId + "?distance=" + self.distance(), {
+          type: "PUT",
+          contentType: "application/json",
+          data: JSON.stringify(newLoc),
+          processData: false,
+          success: function (data, status, xhr) {
+            console.log("PUT success: ", arguments);
+          }
+        });
+      } else {
         console.log("posting: ", JSON.stringify(newLoc));
 
         $.ajax("/location", {
@@ -99,14 +115,17 @@ var Location = function () {
           data: JSON.stringify(newLoc),
           processData: false,
           success: function (data, status, xhr) {
-            console.log("success: ", arguments);
+            console.log("POST success: ", arguments);
             myLocationId = data.id
 
-            window.setTimeout(function () {
+            var pollerUpd = function () {
               $.getJSON("/location/" + myLocationId + "/nearby", function (data) {
                 self.nearby(data);
+                console.log("nearby: ", self.nearby());
+                poller = window.setTimeout(pollerUpd, 3000);
               });
-            }, 5000);
+            };
+            poller = window.setTimeout(pollerUpd, 3000);
           }
         });
       }
