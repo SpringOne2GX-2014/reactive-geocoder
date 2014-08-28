@@ -21,4 +21,12 @@ public class ProcessorConfig {
 		return defaultDistance;
 	}
 
+	public void setBaseUri(String baseUri) {
+		this.baseUri = baseUri;
+	}
+
+	public void setDefaultDistance(int defaultDistance) {
+		this.defaultDistance = defaultDistance;
+	}
+
 }
