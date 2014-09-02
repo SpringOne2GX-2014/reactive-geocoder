@@ -1,35 +1,78 @@
 package demo;
 
-import static org.junit.Assert.assertEquals;
-
+import demo.domain.Location;
+import jsr166e.extra.AtomicDouble;
+import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.IntegrationTest;
-import org.springframework.boot.test.SpringApplicationConfiguration;
-import org.springframework.boot.test.TestRestTemplate;
-import org.springframework.data.mongodb.MongoDbFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.web.client.RestTemplate;
+import reactor.core.Environment;
 
-import ratpack.server.RatpackServer;
+import java.net.URI;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@SpringApplicationConfiguration(classes = ProcessorApplication.class)
-@IntegrationTest("server.port=0")
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertThat;
+
 public class ProcessorApplicationTests {
-	
-	@Autowired
-	private MongoDbFactory mongo;
-	
-	@Autowired
-	private RatpackServer server;
+
+	private String baseUri;
+
+	@Before
+	public void setup() {
+		baseUri = "http://localhost:5050";
+	}
 
 	@Test
-	public void contextLoads() {
-		ResponseEntity<String> result = new TestRestTemplate().getForEntity("http://localhost:" + server.getBindPort(), String.class);
-		assertEquals(HttpStatus.OK, result.getStatusCode());
+	public void interaction() throws InterruptedException {
+		ExecutorService pool = Executors.newCachedThreadPool();
+		RestTemplate rest = new RestTemplate();
+		int times = 1000;
+		int iterations = times / Environment.PROCESSORS;
+
+		double start = System.currentTimeMillis();
+		AtomicDouble counter = new AtomicDouble();
+
+		for (int t = 0; t < Environment.PROCESSORS; t++) {
+			pool.submit(() -> {
+				for (int i = 0; i < iterations; i++) {
+					Location out = new Location()
+							.setName("John Doe")
+							.setCity("New York")
+							.setProvince("NY")
+							.setCoordinates(new double[]{-74.00594130000002, 40.7127837});
+
+					URI getUri = rest.postForLocation(baseUri + "/location", out, Location.class);
+					assertThat("Location was created", getUri.toString(), startsWith(baseUri + "/location/"));
+
+					LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(500));
+
+					ResponseEntity<Location> resp = rest.getForEntity(getUri, Location.class);
+					assertThat("Response was received", resp.getStatusCode(), is(HttpStatus.OK));
+
+					LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1000));
+
+					ResponseEntity<String> jsonResp = rest.getForEntity(getUri + "/nearby", String.class);
+					if (jsonResp.getStatusCode() != HttpStatus.OK) {
+						System.out.println("response: " + jsonResp.getBody());
+					}
+					assertThat("Response was OK", jsonResp.getStatusCode(), is(HttpStatus.OK));
+					counter.addAndGet(1);
+				}
+			});
+		}
+		while (counter.get() < times) {
+			LockSupport.parkNanos(500);
+		}
+		double end = System.currentTimeMillis();
+		double elapsed = end - start;
+		int throughput = (int) (times / (elapsed / 1000));
+		System.out.println("throughput: " + throughput + "/s");
 	}
 
 }

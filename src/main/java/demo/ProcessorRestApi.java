@@ -10,11 +10,14 @@ import org.springframework.data.geo.Point;
 import org.springframework.stereotype.Component;
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
+import reactor.core.Environment;
 import reactor.core.Reactor;
 import reactor.event.Event;
 import reactor.rx.Stream;
 import reactor.rx.spec.Streams;
 import reactor.tuple.Tuple;
+
+import java.util.List;
 
 import static ratpack.jackson.Jackson.fromJson;
 import static ratpack.jackson.Jackson.json;
@@ -29,6 +32,7 @@ public class ProcessorRestApi {
 
 	private final LocationRepository locations;
 	private final GeoNearService     geoNear;
+	private final Environment        env;
 	private final Reactor            eventBus;
 	private final Stream<Location>   locationEventStream;
 	private final ProcessorConfig    config;
@@ -37,11 +41,13 @@ public class ProcessorRestApi {
 	@Autowired
 	public ProcessorRestApi(LocationRepository locations,
 	                        GeoNearService geoNear,
+	                        Environment env,
 	                        Reactor eventBus,
 	                        Stream<Location> locationEventStream,
 	                        ProcessorConfig config) {
 		this.locations = locations;
 		this.geoNear = geoNear;
+		this.env = env;
 		this.eventBus = eventBus;
 		this.locationEventStream = locationEventStream;
 		this.config = config;
@@ -57,10 +63,17 @@ public class ProcessorRestApi {
 			locationEventStream.broadcastNext(loc);
 
 			// Only add Locations <= 10km away from my Location
-			GeoNearPredicate filter = new GeoNearPredicate(new Point(loc.getCoordinates()[0], loc.getCoordinates()[1]),
-			                                               defaultDistance);
+			Point p = new Point(loc.getCoordinates()[0], loc.getCoordinates()[1]);
+			GeoNearPredicate filter = new GeoNearPredicate(p, defaultDistance);
 
-			Streams.merge(locationEventStream, Streams.defer(locations.findAll()))
+			List<Location> prev = (List<Location>) locations.findAll();
+			Stream<Location> sink;
+			if (prev.isEmpty()) {
+				sink = locationEventStream;
+			} else {
+				sink = Streams.merge(env, locationEventStream, Streams.defer(prev));
+			}
+			sink
 					.filter(l -> !nullSafeEquals(loc.getId(), l.getId())) // not us
 					.filter(filter)
 					.consume(loc2 -> geoNear.addGeoNear(loc, loc2)); // add to cache
