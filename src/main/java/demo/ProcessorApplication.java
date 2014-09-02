@@ -7,7 +7,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.geo.GeoModule;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import ratpack.func.Action;
 import ratpack.handling.Chain;
@@ -55,11 +54,6 @@ public class ProcessorApplication {
 			// Find nearby Locations
 			chain.get("location/:id/nearby", restApi.retrieveNearby());
 		};
-	}
-
-	@Bean
-	public GeoModule geoJacksonModule() {
-		return new GeoModule();
 	}
 
 	public static void main(String[] args) {

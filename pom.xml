@@ -79,23 +79,6 @@
 			<version>${reactor.version}</version>
 		</dependency>
 
-		<!-- Google APIs -->
-		<dependency>
-			<groupId>com.google.api-client</groupId>
-			<artifactId>google-api-client</artifactId>
-			<version>${google.api.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.google.api-client</groupId>
-			<artifactId>google-api-client-jackson2</artifactId>
-			<version>${google.api.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.google.apis</groupId>
-			<artifactId>google-api-services-mapsengine</artifactId>
-			<version>v1-rev34-1.19.0</version>
-		</dependency>
-
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -110,7 +93,6 @@
 		<java.version>1.8</java.version>
 		<spring-boot-ratpack.version>1.0.0.BUILD-SNAPSHOT</spring-boot-ratpack.version>
 		<reactor.version>2.0.0.BUILD-SNAPSHOT</reactor.version>
-		<google.api.version>1.18.0-rc</google.api.version>
 	</properties>
 
 	<build>
