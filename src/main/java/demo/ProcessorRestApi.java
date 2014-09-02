@@ -1,14 +1,13 @@
 package demo;
 
-import static ratpack.jackson.Jackson.fromJson;
-import static ratpack.jackson.Jackson.json;
-import static reactor.event.selector.Selectors.$;
-
+import demo.domain.Location;
+import demo.domain.LocationRepository;
+import demo.geo.GeoNearPredicate;
+import demo.geo.GeoNearService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.Point;
 import org.springframework.stereotype.Component;
-
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
 import reactor.core.Reactor;
@@ -16,10 +15,11 @@ import reactor.event.Event;
 import reactor.rx.Stream;
 import reactor.rx.spec.Streams;
 import reactor.tuple.Tuple;
-import demo.domain.Location;
-import demo.domain.LocationRepository;
-import demo.geo.GeoNearPredicate;
-import demo.geo.GeoNearService;
+
+import static ratpack.jackson.Jackson.fromJson;
+import static ratpack.jackson.Jackson.json;
+import static reactor.event.selector.Selectors.$;
+import static reactor.util.ObjectUtils.nullSafeEquals;
 
 /**
  * @author Jon Brisbin
@@ -60,8 +60,8 @@ public class ProcessorRestApi {
 			GeoNearPredicate filter = new GeoNearPredicate(new Point(loc.getCoordinates()[0], loc.getCoordinates()[1]),
 			                                               defaultDistance);
 
-			Streams.<Location>merge(locationEventStream, Streams.<Location>defer(locations.findAll()))
-			//.filter(l -> !loc.getId().equals(l.getId())) // not us
+			Streams.merge(locationEventStream, Streams.defer(locations.findAll()))
+					.filter(l -> !nullSafeEquals(loc.getId(), l.getId())) // not us
 					.filter(filter)
 					.consume(loc2 -> geoNear.addGeoNear(loc, loc2)); // add to cache
 
@@ -93,7 +93,6 @@ public class ProcessorRestApi {
 				                                   .get("distance"));
 				Point p = new Point(loc.getCoordinates()[0], loc.getCoordinates()[1]);
 				Distance d = new Distance(distance);
-				GeoNearPredicate filter = new GeoNearPredicate(p, d);
 
 				// Notify Predicate of the change
 				eventBus.notify(loc.getId() + ".distance", Event.wrap(Tuple.of(p, d)));
@@ -102,13 +101,8 @@ public class ProcessorRestApi {
 				geoNear.clearGeoNear(loc);
 
 				// Find nearby by querying MongoDB again
-				Location loc1 = loc;
 				locations.findByCoordinatesNear(p, d)
-				         .forEach(loc2 -> {
-					         if (!loc1.getId().equals(loc2.getId()) && filter.test(loc2)) {
-						         geoNear.addGeoNear(loc1, loc2);
-					         }
-				         });
+				         .forEach(locationEventStream::broadcastNext);
 			}
 		};
 	}
@@ -136,7 +130,8 @@ public class ProcessorRestApi {
 		Location loc = locations.findOne(id);
 		if (null == loc) {
 			// We must have a real Location already
-			ctx.error(new IllegalArgumentException("Location with id " + id + " not found"));
+			ctx.clientError(404);
+			throw new IllegalArgumentException("Location with id " + id + " not found");
 		}
 		return loc;
 	}
