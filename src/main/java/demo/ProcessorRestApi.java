@@ -1,12 +1,9 @@
 package demo;
 
-import demo.domain.Location;
-import demo.domain.LocationRepository;
-import demo.geo.GeoNearPredicate;
-import demo.geo.GeoNearService;
+import static ratpack.jackson.Jackson.fromJson;
+import static ratpack.jackson.Jackson.json;
+import static reactor.event.selector.Selectors.$;
 
-import org.eclipse.jetty.jndi.local.localContextRoot;
-import org.neo4j.cypher.internal.compiler.v2_1.docbuilders.logicalPlanDocBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.Point;
@@ -19,9 +16,10 @@ import reactor.event.Event;
 import reactor.rx.Stream;
 import reactor.rx.spec.Streams;
 import reactor.tuple.Tuple;
-import static ratpack.jackson.Jackson.fromJson;
-import static ratpack.jackson.Jackson.json;
-import static reactor.event.selector.Selectors.$;
+import demo.domain.Location;
+import demo.domain.LocationRepository;
+import demo.geo.GeoNearPredicate;
+import demo.geo.GeoNearService;
 
 /**
  * @author Jon Brisbin
