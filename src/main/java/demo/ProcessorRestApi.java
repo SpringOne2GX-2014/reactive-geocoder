@@ -4,10 +4,14 @@ import demo.domain.Location;
 import demo.domain.LocationRepository;
 import demo.geo.GeoNearPredicate;
 import demo.geo.GeoNearService;
+
+import org.eclipse.jetty.jndi.local.localContextRoot;
+import org.neo4j.cypher.internal.compiler.v2_1.docbuilders.logicalPlanDocBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.Point;
 import org.springframework.stereotype.Component;
+
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
 import reactor.core.Reactor;
@@ -15,7 +19,6 @@ import reactor.event.Event;
 import reactor.rx.Stream;
 import reactor.rx.spec.Streams;
 import reactor.tuple.Tuple;
-
 import static ratpack.jackson.Jackson.fromJson;
 import static ratpack.jackson.Jackson.json;
 import static reactor.event.selector.Selectors.$;
@@ -59,9 +62,8 @@ public class ProcessorRestApi {
 			GeoNearPredicate filter = new GeoNearPredicate(new Point(loc.getCoordinates()[0], loc.getCoordinates()[1]),
 			                                               defaultDistance);
 
-			locationEventStream
-					.merge(Streams.defer(locations.findAll())) // historical data
-							//.filter(l -> !loc.getId().equals(l.getId())) // not us
+			Streams.<Location>merge(locationEventStream, Streams.<Location>defer(locations.findAll()))
+			//.filter(l -> !loc.getId().equals(l.getId())) // not us
 					.filter(filter)
 					.consume(loc2 -> geoNear.addGeoNear(loc, loc2)); // add to cache
 
