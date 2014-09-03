@@ -70,6 +70,12 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-ratpack</artifactId>
 			<version>${spring-boot-ratpack.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>reactive-streams</artifactId>
+                    <groupId>org.reactivestreams</groupId>
+                </exclusion>
+            </exclusions>
 		</dependency>
 
 		<!-- Reactor -->
