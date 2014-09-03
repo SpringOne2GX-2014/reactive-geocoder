@@ -1,6 +1,7 @@
 package demo.domain;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.geo.Point;
 import org.springframework.data.mongodb.core.index.GeoSpatialIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import reactor.util.ObjectUtils;
@@ -26,6 +27,11 @@ public class Location implements Comparable<Location> {
 
 	public String getId() {
 		return id;
+	}
+
+	public Location setId(String id) {
+		this.id = id;
+		return this;
 	}
 
 	public String getName() {
@@ -80,6 +86,10 @@ public class Location implements Comparable<Location> {
 	public Location setCoordinates(double[] coordinates) {
 		this.coordinates = coordinates;
 		return this;
+	}
+
+	public Point toPoint() {
+		return new Point(coordinates[0], coordinates[1]);
 	}
 
 	@Override

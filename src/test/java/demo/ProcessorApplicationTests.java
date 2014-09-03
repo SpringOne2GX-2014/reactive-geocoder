@@ -33,7 +33,7 @@ public class ProcessorApplicationTests {
 	public void interaction() throws InterruptedException {
 		ExecutorService pool = Executors.newCachedThreadPool();
 		RestTemplate rest = new RestTemplate();
-		int times = 1000;
+		int times = 10;
 		int iterations = times / Environment.PROCESSORS;
 
 		double start = System.currentTimeMillis();

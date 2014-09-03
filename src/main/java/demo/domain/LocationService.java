@@ -1,0 +1,105 @@
+package demo.domain;
+
+import com.gs.collections.impl.list.mutable.FastList;
+import demo.ProcessorConfig;
+import demo.geo.GeoNearPredicate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.geo.Distance;
+import org.springframework.stereotype.Service;
+import reactor.core.Environment;
+import reactor.core.Reactor;
+import reactor.rx.Stream;
+import reactor.rx.action.Action;
+import reactor.rx.spec.Streams;
+import reactor.tuple.Tuple;
+import reactor.tuple.Tuple2;
+
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static reactor.event.selector.Selectors.$;
+import static reactor.util.ObjectUtils.nullSafeEquals;
+
+/**
+ * @author Jon Brisbin
+ */
+@Service
+public class LocationService {
+
+	private final ConcurrentHashMap<String, Stream<Location>> nearbyStreams  = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, List<Location>>   nearbyLocCache = new ConcurrentHashMap<>();
+
+	private final Environment        env;
+	private final LocationRepository locations;
+	private final Reactor            eventBus;
+	private final Stream<Location>   locationSaveEvents;
+	private final Distance           defaultDistance;
+
+	@Autowired
+	public LocationService(Environment env,
+	                       LocationRepository locations,
+	                       Reactor eventBus,
+	                       Stream<Location> locationSaveEvents,
+	                       ProcessorConfig config) {
+		this.env = env;
+		this.locations = locations;
+		this.eventBus = eventBus;
+		this.locationSaveEvents = locationSaveEvents;
+		this.defaultDistance = new Distance(config.getDefaultDistance());
+	}
+
+	public Action<String, Location> findOne(String id) {
+		return Streams.defer(env, env.getDefaultDispatcherFactory().get(), id)
+		              .<Location>map(locations::findOne);
+	}
+
+	public Stream<Location> create(Location loc) {
+		return update(loc, defaultDistance);
+	}
+
+	public Stream<Location> update(Location loc, Distance distance) {
+		return save(loc, distance)
+				// refresh cache with nearby Locations and given distance
+				.map(tup -> {
+					Stream<Location> nearby;
+					if (null != (nearby = nearbyStreams.remove(loc.getId()))) {
+						nearby.cancel();
+						nearbyLocCache.remove(loc.getId());
+					}
+					findNearby(tup.getT1(), distance);
+					return tup.getT1();
+				});
+	}
+
+	public List<Location> nearby(String locId) {
+		return nearbyLocCache.get(locId);
+	}
+
+	private Stream<Tuple2<Location, GeoNearPredicate>> save(Location loc, Distance distance) {
+		return Streams.defer(env, env.getDefaultDispatcherFactory().get(), loc)
+				// persist incoming to MongoDB
+				.observe(locations::save)
+						// broadcast this update to others
+				.observe(locationSaveEvents::broadcastNext)
+						// create a distance filter using Haversine Formula
+				.map(l -> {
+					GeoNearPredicate filter = new GeoNearPredicate(l.toPoint(), distance);
+					if (!eventBus.respondsToKey(l.getId() + ".distance")) {
+						eventBus.on($(l.getId() + ".distance"), filter);
+					}
+					return Tuple.of(l, filter);
+				});
+	}
+
+	private void findNearby(Location loc, Distance distance) {
+		Stream<Location> nearbyLocs = Streams.defer(locations.findByCoordinatesNear(loc.toPoint(), distance));
+		Streams.merge(env, locationSaveEvents, nearbyLocs)
+		       .filter(nearbyLoc -> !nullSafeEquals(nearbyLoc.getId(), loc.getId()))
+		       .filter(new GeoNearPredicate(loc.toPoint(), distance))
+		       .consume(l -> nearbyLocCache.computeIfAbsent(loc.getId(), s -> FastList.newList())
+		                                   .add(l))
+		       .nest()
+		       .consume(s -> nearbyStreams.put(loc.getId(), s));
+	}
+
+}
