@@ -8,8 +8,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
+import ratpack.error.ServerErrorHandler;
 import ratpack.func.Action;
 import ratpack.handling.Chain;
+import ratpack.handling.Context;
+import ratpack.jackson.Jackson;
+import ratpack.render.Renderer;
+import ratpack.render.RendererSupport;
 import ratpack.spring.annotation.EnableRatpack;
 import reactor.core.Environment;
 import reactor.core.Reactor;
@@ -38,8 +43,24 @@ public class ProcessorApplication {
 	}
 
 	@Bean
+	public Renderer<Location> locationRenderer() {
+		return new RendererSupport<Location>() {
+			@Override
+			public void render(Context context, Location location) throws Exception {
+				context.render(Jackson.json(location));
+			}
+		};
+	}
+
+	@Bean
 	public Action<Chain> handlers(ProcessorRestApi restApi) {
+
 		return (chain) -> {
+			chain.register(registrySpec -> registrySpec.add(ServerErrorHandler.class, (context, exception) -> {
+				exception.printStackTrace();
+				context.render("error");
+			}));
+
 			chain.get(ctx -> ctx.render(ctx.file("public/index.html")));
 
 			// Create new Location
