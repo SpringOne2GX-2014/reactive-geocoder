@@ -1,5 +1,6 @@
 package demo.geo;
 
+import com.google.common.collect.Iterables;
 import com.gs.collections.impl.map.mutable.UnifiedMap;
 import demo.domain.Location;
 import org.springframework.stereotype.Service;
@@ -22,7 +23,8 @@ public class GeoNearService {
 
 	public Iterable<Location> findGeoNear(Location loc) {
 		Map<String, Location> locs = getNearby(loc.getId());
-		return locs.values();
+		// Wrap the GS collection type because Jackson has problems rendering it
+		return Iterables.unmodifiableIterable(locs.values());
 	}
 
 	public void clearGeoNear(Location loc) {
