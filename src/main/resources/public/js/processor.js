@@ -118,7 +118,7 @@ var Location = function () {
             console.log("POST success: ", arguments);
             myLocationId = data.id
 
-            var wsUrl = "ws://localhost:5050/location/" + myLocationId + "/live";
+            var wsUrl = "ws://localhost:5050/location/" + myLocationId + "/nearby";
             var wsFactory = function () {
               var fn = this;
               var retry = function () {
@@ -126,6 +126,9 @@ var Location = function () {
               }
 
               var ws = new WebSocket(wsUrl);
+              ws.onopen = function () {
+                self.nearby([]);
+              }
               ws.onclose = retry;
               ws.onerror = retry;
               ws.onmessage = function (msg) {

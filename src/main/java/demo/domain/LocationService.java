@@ -26,7 +26,6 @@ import static reactor.util.ObjectUtils.nullSafeEquals;
 public class LocationService {
 
 	private final ConcurrentHashMap<String, Stream<Location>> nearbyStreams  = new ConcurrentHashMap<>();
-	private final ConcurrentHashMap<String, List<Location>>   nearbyLocCache = new ConcurrentHashMap<>();
 
 	private final Environment        env;
 	private final LocationRepository locations;
@@ -61,19 +60,14 @@ public class LocationService {
 					Stream<Location> nearby;
 					if (null != (nearby = nearbyStreams.remove(loc.getId()))) {
 						nearby.cancel();
-						nearbyLocCache.remove(loc.getId());
 					}
 					findNearby(tup.getT1(), distance);
 					return tup.getT1();
 				});
 	}
 
-	public Stream<Location> nearbyAsStream(String locId) {
+	public Stream<Location> nearby(String locId) {
 		return nearbyStreams.get(locId);
-	}
-
-	public List<Location> nearby(String locId) {
-		return nearbyLocCache.get(locId);
 	}
 
 	private Stream<Tuple2<Location, GeoNearPredicate>> save(Location loc, Distance distance) {
@@ -101,10 +95,6 @@ public class LocationService {
 
 				// filter out only Locations within given Distance
 				.filter(new GeoNearPredicate(loc.toPoint(), distance))
-
-				// cache nearby Locations
-				.observe(l -> nearbyLocCache.computeIfAbsent(loc.getId(), s -> FastList.newList())
-				                            .add(l))
 
 				// cache this Stream for cancellation later
 				.nest().consume(s -> nearbyStreams.put(loc.getId(), s));

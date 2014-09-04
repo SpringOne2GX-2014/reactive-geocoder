@@ -19,10 +19,6 @@ import ratpack.handling.Context;
 import ratpack.render.Renderer;
 import ratpack.render.RendererSupport;
 import ratpack.spring.annotation.EnableRatpack;
-import ratpack.websocket.WebSocket;
-import ratpack.websocket.WebSocketClose;
-import ratpack.websocket.WebSocketHandler;
-import ratpack.websocket.WebSocketMessage;
 import reactor.core.Environment;
 import reactor.rx.Stream;
 import reactor.rx.spec.Streams;
@@ -84,47 +80,16 @@ public class ProcessorApplication {
 				   .then(ctx::render);
 			});
 
-			chain.handler("location/:id/live", ctx -> {
+			chain.handler("location/:id/nearby", ctx -> {
 				String id = ctx.getPathTokens().get("id");
 
 				Stream<Location> nearby;
-				if (null != (nearby = locations.nearbyAsStream(id))) {
+				if (null != (nearby = locations.nearby(id))) {
 					websocketBroadcast(ctx, nearby.map(l -> l.toJson(mapper)));
 				} else {
-					ctx.redirect(303, "/location/" + id + "/live");
+					ctx.redirect(303, "/location/" + id + "/nearby");
 				}
 			});
-
-			// Find nearby Locations
-			chain.get("location/:id/nearby", ctx -> {
-				String id = ctx.getPathTokens().get("id");
-
-				ctx.render(json(locations.nearby(id)));
-			});
-		};
-	}
-
-	private static WebSocketHandler<Stream<Location>> webSocketHandler(String id,
-	                                                                   LocationService locations,
-	                                                                   ObjectMapper mapper) {
-		return new WebSocketHandler<Stream<Location>>() {
-			@Override
-			public Stream<Location> onOpen(WebSocket ws) throws Exception {
-				ws.send(mapper.writeValueAsString(locations.nearby(id)));
-
-				return locations.nearbyAsStream(id)
-				                .observe(l -> ws.send(l.toJson(mapper)));
-			}
-
-			@Override
-			public void onClose(WebSocketClose<Stream<Location>> close) throws Exception {
-
-			}
-
-			@Override
-			public void onMessage(WebSocketMessage<Stream<Location>> frame) throws Exception {
-
-			}
 		};
 	}
 
