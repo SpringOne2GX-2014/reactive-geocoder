@@ -3,8 +3,6 @@ package demo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import demo.domain.Location;
 import demo.domain.LocationService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -26,6 +24,7 @@ import reactor.spring.context.config.EnableReactor;
 
 import static ratpack.jackson.Jackson.fromJson;
 import static ratpack.jackson.Jackson.json;
+import static ratpack.websocket.WebSockets.websocket;
 import static ratpack.websocket.WebSockets.websocketBroadcast;
 
 @Configuration
@@ -37,17 +36,13 @@ import static ratpack.websocket.WebSockets.websocketBroadcast;
 @EnableReactor
 public class ProcessorApplication {
 
-	private final Logger log = LoggerFactory.getLogger(getClass());
-
 	@Bean
 	public Stream<Location> locationEventStream(Environment env) {
 		return Streams.defer(env);
 	}
 
 	@Bean
-	public Action<Chain> handlers(Environment env,
-	                              LocationService locations,
-	                              ObjectMapper mapper) {
+	public Action<Chain> handlers(LocationService locations, ObjectMapper mapper) {
 		return (chain) -> {
 			chain.get(ctx -> ctx.render(ctx.file("public/index.html")));
 
@@ -80,6 +75,7 @@ public class ProcessorApplication {
 				   .then(ctx::render);
 			});
 
+			// Watch for updates of Locations near us
 			chain.handler("location/:id/nearby", ctx -> {
 				String id = ctx.getPathTokens().get("id");
 

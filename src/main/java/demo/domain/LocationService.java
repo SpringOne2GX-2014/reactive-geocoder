@@ -41,6 +41,8 @@ public class LocationService {
 		this.locations = locations;
 		this.locationSaveEvents = locationSaveEvents;
 		this.defaultDistance = new Distance(config.getDefaultDistance());
+
+		locations.deleteAll();
 	}
 
 	public Action<String, Location> findOne(String id) {
@@ -53,7 +55,16 @@ public class LocationService {
 	}
 
 	public Stream<Location> update(Location loc, Distance distance) {
-		return save(loc, distance)
+		return Streams.defer(env, env.getDefaultDispatcherFactory().get(), loc)
+
+				// persist incoming to MongoDB
+				.map(locations::save)
+
+				// broadcast this update to others
+				.observe(locationSaveEvents::broadcastNext)
+
+				// create a distance filter using Haversine Formula
+				.map(l -> Tuple.of(l, new GeoNearPredicate(l.toPoint(), distance)))
 
 				// refresh cache with nearby Locations and given distance
 				.map(tup -> {
@@ -70,25 +81,12 @@ public class LocationService {
 		return nearbyStreams.get(locId);
 	}
 
-	private Stream<Tuple2<Location, GeoNearPredicate>> save(Location loc, Distance distance) {
-		return Streams.defer(env, env.getDefaultDispatcherFactory().get(), loc)
-
-				// persist incoming to MongoDB
-				.observe(locations::save)
-
-				// broadcast this update to others
-				.observe(locationSaveEvents::broadcastNext)
-
-				// create a distance filter using Haversine Formula
-				.map(l -> Tuple.of(l, new GeoNearPredicate(l.toPoint(), distance)));
-	}
-
-	private CallbackAction<Stream<Location>> findNearby(Location loc, Distance distance) {
+	private void findNearby(Location loc, Distance distance) {
 		// find nearby Locations
 		List<Location> nearbyLocs = locations.findByCoordinatesNear(loc.toPoint(), distance);
 
 		// merge existing nearby Locations with live events
-		return Streams.merge(env, locationSaveEvents, Streams.defer(nearbyLocs))
+		Streams.merge(env, locationSaveEvents, Streams.defer(nearbyLocs))
 
 				// filter out our own Location
 				.filter(nearbyLoc -> !nullSafeEquals(nearbyLoc.getId(), loc.getId()))
