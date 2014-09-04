@@ -3,10 +3,7 @@ package demo.geo;
 import demo.domain.Location;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.Point;
-import reactor.event.Event;
-import reactor.function.Consumer;
 import reactor.function.Predicate;
-import reactor.tuple.Tuple2;
 
 /**
  * This {@link reactor.function.Predicate} implementation calculates the distance between a "home" {@link
@@ -17,23 +14,16 @@ import reactor.tuple.Tuple2;
  *
  * @author Jon Brisbin
  */
-public class GeoNearPredicate implements Predicate<Location>, Consumer<Event<Tuple2<Point, Distance>>> {
+public class GeoNearPredicate implements Predicate<Location> {
 
 	private static final double EARTH_RADIUS_IN_KM = 6372.797560856;
 
-	private volatile Point    home;
-	private volatile Distance distance;
+	private final Point    home;
+	private final Distance distance;
 
 	public GeoNearPredicate(Point home, Distance distance) {
 		this.home = home;
 		this.distance = distance;
-	}
-
-	@Override
-	public void accept(Event<Tuple2<Point, Distance>> ev) {
-		Tuple2<Point, Distance> tup = ev.getData();
-		this.home = tup.getT1();
-		this.distance = tup.getT2();
 	}
 
 	/**

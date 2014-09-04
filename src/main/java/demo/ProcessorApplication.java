@@ -72,6 +72,7 @@ public class ProcessorApplication {
 				   .then(ctx::render);
 			});
 
+			// Find nearby Locations
 			chain.get("location/:id/nearby", ctx -> {
 				String id = ctx.getPathTokens().get("id");
 

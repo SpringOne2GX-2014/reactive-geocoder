@@ -67,15 +67,24 @@
 
 		<!-- Ratpack (HTTP) -->
 		<dependency>
+			<groupId>io.ratpack</groupId>
+			<artifactId>ratpack-core</artifactId>
+			<version>${ratpack.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.ratpack</groupId>
+			<artifactId>ratpack-groovy</artifactId>
+			<version>${ratpack.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.ratpack</groupId>
+			<artifactId>ratpack-jackson</artifactId>
+			<version>${ratpack.version}</version>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-ratpack</artifactId>
 			<version>${spring-boot-ratpack.version}</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>reactive-streams</artifactId>
-                    <groupId>org.reactivestreams</groupId>
-                </exclusion>
-            </exclusions>
 		</dependency>
 
 		<!-- Reactor -->
@@ -99,6 +108,7 @@
 		<java.version>1.8</java.version>
 		<spring-boot-ratpack.version>1.0.0.BUILD-SNAPSHOT</spring-boot-ratpack.version>
 		<reactor.version>2.0.0.BUILD-SNAPSHOT</reactor.version>
+		<ratpack.version>0.9.9-SNAPSHOT</ratpack.version>
 	</properties>
 
 	<build>
