@@ -1,5 +1,7 @@
 package demo.domain;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.geo.Point;
 import org.springframework.data.mongodb.core.index.GeoSpatialIndexed;
@@ -90,6 +92,14 @@ public class Location implements Comparable<Location> {
 
 	public Point toPoint() {
 		return new Point(coordinates[0], coordinates[1]);
+	}
+
+	public String toJson(ObjectMapper mapper) {
+		try {
+			return mapper.writeValueAsString(this);
+		} catch (JsonProcessingException e) {
+			throw new IllegalStateException(e.getMessage(), e);
+		}
 	}
 
 	@Override

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.Environment;
 import reactor.rx.Stream;
 import reactor.rx.action.Action;
+import reactor.rx.action.CallbackAction;
 import reactor.rx.spec.Streams;
 import reactor.tuple.Tuple;
 import reactor.tuple.Tuple2;
@@ -67,6 +68,10 @@ public class LocationService {
 				});
 	}
 
+	public Stream<Location> nearbyAsStream(String locId) {
+		return nearbyStreams.get(locId);
+	}
+
 	public List<Location> nearby(String locId) {
 		return nearbyLocCache.get(locId);
 	}
@@ -84,25 +89,25 @@ public class LocationService {
 				.map(l -> Tuple.of(l, new GeoNearPredicate(l.toPoint(), distance)));
 	}
 
-	private void findNearby(Location loc, Distance distance) {
+	private CallbackAction<Stream<Location>> findNearby(Location loc, Distance distance) {
 		// find nearby Locations
-		Stream<Location> nearbyLocs = Streams.defer(locations.findByCoordinatesNear(loc.toPoint(), distance));
-		
+		List<Location> nearbyLocs = locations.findByCoordinatesNear(loc.toPoint(), distance);
+
 		// merge existing nearby Locations with live events
-		Streams.merge(env, locationSaveEvents, nearbyLocs)
+		return Streams.merge(env, locationSaveEvents, Streams.defer(nearbyLocs))
 
-					 // filter out our own Location
-		       .filter(nearbyLoc -> !nullSafeEquals(nearbyLoc.getId(), loc.getId()))
+				// filter out our own Location
+				.filter(nearbyLoc -> !nullSafeEquals(nearbyLoc.getId(), loc.getId()))
 
-				   // filter out only Locations within given Distance
-		       .filter(new GeoNearPredicate(loc.toPoint(), distance))
+				// filter out only Locations within given Distance
+				.filter(new GeoNearPredicate(loc.toPoint(), distance))
 
-				   // cache nearby Locations
-		       .consume(l -> nearbyLocCache.computeIfAbsent(loc.getId(), s -> FastList.newList())
-		                                   .add(l))
+				// cache nearby Locations
+				.observe(l -> nearbyLocCache.computeIfAbsent(loc.getId(), s -> FastList.newList())
+				                            .add(l))
 
-				   // cache this Stream for cancellation later
-		       .nest().consume(s -> nearbyStreams.put(loc.getId(), s));
+				// cache this Stream for cancellation later
+				.nest().consume(s -> nearbyStreams.put(loc.getId(), s));
 	}
 
 }

@@ -118,14 +118,22 @@ var Location = function () {
             console.log("POST success: ", arguments);
             myLocationId = data.id
 
-            var pollerUpd = function () {
-              $.getJSON("/location/" + myLocationId + "/nearby", function (data) {
-                self.nearby(data);
-                console.log("nearby: ", self.nearby());
-                poller = window.setTimeout(pollerUpd, 3000);
-              });
-            };
-            poller = window.setTimeout(pollerUpd, 3000);
+            var wsUrl = "ws://localhost:5050/location/" + myLocationId + "/live";
+            var wsFactory = function () {
+              var fn = this;
+              var retry = function () {
+                window.setTimeout(fn, 1000);
+              }
+
+              var ws = new WebSocket(wsUrl);
+              ws.onclose = retry;
+              ws.onerror = retry;
+              ws.onmessage = function (msg) {
+                console.log("got nearby: ", msg.data);
+                self.nearby.push(JSON.parse(msg.data));
+              }
+            }
+            var ws = wsFactory();
           }
         });
       }

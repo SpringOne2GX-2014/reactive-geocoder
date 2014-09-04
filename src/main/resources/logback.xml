@@ -9,6 +9,7 @@
 	</appender>
 
 	<logger name="org.springframework" level="error"/>
+	<logger name="reactor.rx" level="error"/>
 	<logger name="reactor" level="debug"/>
 
 	<root level="info">
