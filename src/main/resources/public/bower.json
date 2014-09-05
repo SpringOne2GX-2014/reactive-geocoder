@@ -1,0 +1,18 @@
+{
+  "name": "reactive-realtime-geocoding-demo",
+  "version": "0.1.0",
+  "description": "Reactive Realtime Geocoding Demo",
+  "main": "app/main.js",
+  "moduleType": [
+    "amd"
+  ],
+  "dependencies": {
+    "rave": ">=0.3.0",
+    "rest": ">=1.2.0",
+    "knockout": "~3.2.0"
+  },
+  "ignore": [
+    "**/.*",
+    "bower_components"
+  ]
+}

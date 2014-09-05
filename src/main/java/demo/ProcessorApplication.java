@@ -24,7 +24,6 @@ import reactor.spring.context.config.EnableReactor;
 
 import static ratpack.jackson.Jackson.fromJson;
 import static ratpack.jackson.Jackson.json;
-import static ratpack.websocket.WebSockets.websocket;
 import static ratpack.websocket.WebSockets.websocketBroadcast;
 
 @Configuration
@@ -83,7 +82,8 @@ public class ProcessorApplication {
 				if (null != (nearby = locations.nearby(id))) {
 					websocketBroadcast(ctx, nearby.map(l -> l.toJson(mapper)));
 				} else {
-					ctx.redirect(303, "/location/" + id + "/nearby");
+					// We know that bad ids won't be requested
+					ctx.redirect(303, ctx.getRequest().getUri());
 				}
 			});
 		};

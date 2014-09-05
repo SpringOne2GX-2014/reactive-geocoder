@@ -40,6 +40,14 @@
 				<enabled>true</enabled>
 			</snapshots>
 		</repository>
+		<repository>
+			<id>ratpack-snapshot</id>
+			<name>Ratpack Snapshots</name>
+			<url>http://oss.jfrog.org/artifactory/repo</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
 	</repositories>
 
 	<dependencies>
