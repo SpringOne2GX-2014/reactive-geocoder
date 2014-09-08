@@ -1,41 +1,12 @@
 #map-canvas {
-    height: 250px;
+  height: 250px;
+  margin-bottom: 25px;
 }
 
 input {
     margin-bottom: 25px;
 }
 
-input#city {
-    float: left;
-    width: 50%;
-}
-
-input#state {
-    float: left;
-    width: 30%;
-}
-
-input#zipcode {
-    float: left;
-    width: 20%;
-}
-
-input#distance {
-    width: 6em;
-}
-
-.lat-lon {
-    font-size: 2em;
-}
-
-.geocode-btn {
-}
-
 .set-marker-cell {
     width: 2em;
-}
-
-#distance-slider {
-    margin-bottom: 25px;
 }

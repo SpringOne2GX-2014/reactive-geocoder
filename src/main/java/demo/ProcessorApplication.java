@@ -1,7 +1,6 @@
 package demo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableMap;
 import demo.domain.Location;
 import demo.domain.LocationService;
 import org.springframework.boot.SpringApplication;
@@ -15,8 +14,6 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 import ratpack.func.Action;
 import ratpack.handling.Chain;
 import ratpack.handling.Context;
-import ratpack.path.PathBinding;
-import ratpack.path.internal.DefaultPathBinding;
 import ratpack.render.Renderer;
 import ratpack.render.RendererSupport;
 import ratpack.spring.annotation.EnableRatpack;
@@ -51,6 +48,8 @@ public class ProcessorApplication {
 				Location loc = ctx.parse(fromJson(Location.class));
 
 				ctx.promise(f -> locations.create(loc)
+				                          .when(Throwable.class, t -> t.printStackTrace())
+				                          .observe(l -> System.out.println("loc=" + l))
 				                          .consume(f::success))
 				   .then(ctx::render);
 			});
@@ -87,8 +86,6 @@ public class ProcessorApplication {
 					ctx.redirect(303, ctx.getRequest().getUri());
 				}
 			});
-
-			chain.assets("src/main/resources/public", "index.html");
 		};
 	}
 

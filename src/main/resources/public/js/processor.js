@@ -1,6 +1,6 @@
 $(function () {
   var mapOpts = {
-    center: new google.maps.LatLng(37.4440302, -94.2959981),
+    center: new google.maps.LatLng(32.774875, -96.80415),
     zoom: 10
   };
   map = new google.maps.Map($("#map-canvas")[0], mapOpts);

@@ -16,14 +16,13 @@
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>1.1.5.RELEASE</version>
 		<relativePath/>
-		<!-- lookup parent from repository -->
 	</parent>
 
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
-				<groupId>org.springframework.platform</groupId>
-				<artifactId>spring-platform-starters</artifactId>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-starters</artifactId>
 				<version>1.0.0.BUILD-SNAPSHOT</version>
 				<type>pom</type>
 				<scope>import</scope>
@@ -51,10 +50,10 @@
 	</repositories>
 
 	<dependencies>
-		<!-- Spring Platform Netflix -->
+		<!-- Spring Cloud Netflix -->
 		<dependency>
-			<groupId>org.springframework.platform</groupId>
-			<artifactId>spring-platform-starter-eureka</artifactId>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-eureka</artifactId>
 			<exclusions>
 				<exclusion>
 					<artifactId>spring-boot-starter-tomcat</artifactId>
@@ -67,7 +66,7 @@
 			</exclusions>
 		</dependency>
 
-		<!-- Spring Boot -->
+		<!-- Spring -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-mongodb</artifactId>

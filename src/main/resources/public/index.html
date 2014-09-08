@@ -1,87 +1,85 @@
 <!doctype html>
 <html lang="en" data-debug data-rave-meta="bower.json">
 <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Reactive Geocoding Demo</title>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reactive Geocoding Demo</title>
 
-    <!-- Google Maps -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD9LhM4hqN-dmUN5hQQAyUIRzu0ATUrBOc"></script>
+  <!-- Google Maps -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD9LhM4hqN-dmUN5hQQAyUIRzu0ATUrBOc"></script>
 
-    <!-- Processor App -->
-    <link href="css/foundation.min.css" rel="stylesheet">
-    <link href="css/normalize.css" rel="stylesheet">
-    <link href="css/processor.css" rel="stylesheet">
-
-    <script type="text/javascript">
-        var map, geocoder, myMarker, myLocationId, poller;
-    </script>
+  <!-- Processor App -->
+  <link href="css/normalize.css" rel="stylesheet">
+  <link href="css/foundation.min.css" rel="stylesheet">
+  <link href="css/processor.css" rel="stylesheet">
 </head>
 <body>
 
-<div class="container" role="main">
-    <div class="page-header">
-        <h1>Reactive Geocoding Demo</h1>
-    </div>
+  <header class="row">
+    <h1>Reactive Geocoding Demo</h1>
+  </header>
+  
+  <div class="row" id="map-canvas"></div>
 
-    <div class="jumbotron" id="map-canvas">
-    </div>
-
+  <div class="row">
     <form name="baseLocation" action="#">
         <div class="input-group-lg">
-            <input id="name"
-                   type="text"
-                   class="form-control"
-                   placeholder="Name, Company"
-                   data-bind="textInput: name"/>
-            <input id="address"
-                   type="text"
-                   class="form-control"
-                   placeholder="Address"
-                   data-bind="textInput: address"/>
-            <input id="city"
-                   type="text"
-                   class="form-control"
-                   placeholder="City"
-                   data-bind="textInput: city"/>
-            <input id="state"
-                   type="text"
-                   class="form-control"
-                   placeholder="State"
-                   data-bind="textInput: state"/>
-            <input id="zipcode"
-                   type="text"
-                   class="form-control"
-                   placeholder="Zipcode"
-                   data-bind="textInput: zip"/>
+          <label for="name">Name:</label>
+          <input id="name"
+                 type="text"
+                 class="form-control"
+                 placeholder="Name, Company"
+                 data-bind="textInput: name"/>
+
+          <label for="address">Address:</label>
+          <input id="address"
+                 type="text"
+                 class="form-control"
+                 placeholder="Address"
+                 data-bind="textInput: address"/>
+          
+          <label for="city">City:</label>
+          <input id="city"
+                 type="text"
+                 class="form-control"
+                 placeholder="City"
+                 data-bind="textInput: city"/>
+          
+          <label for="state">State/Country:</label>
+          <input id="state"
+                 type="text"
+                 class="form-control"
+                 placeholder="State/Country"
+                 data-bind="textInput: state"/>
+          
+          <label for="zipcode">Postal Code:</label>
+          <input id="zipcode"
+                 type="text"
+                 class="form-control"
+                 placeholder="Zipcode"
+                 data-bind="textInput: zip"/>
         </div>
-
-        <h3>Distance: <span data-bind="text: distance">10</span>km</h3>
-
-        <div id="distance-slider"></div>
     </form>
-    <div class="clearfix"></div>
+  </div>
+  
+  <div class="row">
+    <button type="button" data-bind="click: geocode">Save &raquo;</button>
+  </div>
 
-    <div class="well well-lg text-center lat-lon">
-        <button type="button" class="btn btn-default geocode-btn" data-bind="click: geocode">Save &raquo;</button>
-        <span data-bind="text: lat"> </span> N / <span data-bind="text: lon"> </span> W
-    </div>
-
-    <div class="page-header">
-        <h1>Nearby</h1>
-    </div>
+  <div class="row">
+    <h3>Nearby (within <span data-bind="text: distance">20</span>km)</h3>
 
     <table class="table table-striped">
-        <thead>
+      <thead>
         <tr>
             <th>Name, Company</th>
             <th>City</th>
             <th>State</th>
             <th></th>
         </tr>
-        </thead>
-        <tbody data-bind="foreach: nearby">
+      </thead>
+      <tbody data-bind="foreach: nearby">
         <tr>
             <td><span data-bind="text: name"> </span></td>
             <td><span data-bind="text: city"> </span></td>
@@ -90,10 +88,11 @@
                 <button type="button" class="btn btn-default" data-bind="click: $parent.setMarker">Mark</button>
             </td>
         </tr>
-        </tbody>
+      </tbody>
     </table>
-</div>
+  </div>
 
+<script src="bower_components/jquery/dist/jquery.min.js"></script>
 <script src="bower_components/rave/rave.js"></script>
 </body>
 </html>

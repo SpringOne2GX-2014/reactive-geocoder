@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 public class ProcessorConfig {
 
 	private String baseUri         = "http://localhost:5050";
-	private int    defaultDistance = 10;
+	private int    defaultDistance = 20;
 
 	public String getBaseUri() {
 		return baseUri;
