@@ -3,7 +3,7 @@ var rest = require("rest");
 var mime = require("rest/interceptor/mime");
 var ko = require("knockout");
 
-var map, geocoder, myMarker;
+var map, geocoder, myMarker, ws;
 
 var client = rest.wrap(mime);
 
@@ -62,6 +62,8 @@ var Location = function () {
   }
 
   self.geocode = function () {
+    console.log("geocoding ", self.addressCompact());
+
     geocoder.geocode({
       address: self.addressCompact()
     }, function (results, status) {
@@ -76,9 +78,6 @@ var Location = function () {
 
       self.lat(loc.k);
       self.lon(loc.B);
-
-      console.log("self: ", ko.toJSON(self));
-      console.log("location: ", JSON.stringify(loc));
 
       var newLoc = {
         name: self.name(),
@@ -96,17 +95,16 @@ var Location = function () {
 
         client({
           path: url + "/" + myLocationId + "?distance=" + self.distance(),
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
           },
           entity: newLoc
         })
           .then(function (res) {
-            console.log("response: ", res);
+            console.log("PUT success: ", res);
           });
       } else {
-        console.log("posting: ", JSON.stringify(newLoc));
-
         client({
           path: url,
           headers: {
@@ -119,25 +117,24 @@ var Location = function () {
             myLocationId = res.entity.id
 
             var wsUrl = "ws://localhost:5050/location/" + myLocationId + "/nearby";
-            var wsFactory = function () {
-              var fn = this;
-              var retry = function () {
-                console.log("retrying...");
-                window.setTimeout(fn, 1000);
-              }
-
+            //var wsUrl = "wss://dsyerprocessor.cfapps.io:4443/location/" + myLocationId + "/nearby";
+            window.setTimeout(function () {
               var ws = new WebSocket(wsUrl);
               ws.onopen = function () {
+                console.log("connected...");
                 self.nearby([]);
               }
-              ws.onclose = retry;
-              ws.onerror = retry;
+              ws.onclose = function () {
+                console.log("closed");
+              }
+              ws.onerror = function () {
+                console.log("error", arguments);
+              }
               ws.onmessage = function (msg) {
                 console.log("got nearby: ", msg.data);
                 self.nearby.push(JSON.parse(msg.data));
               }
-            }
-            var ws = wsFactory();
+            }, 500);
           });
       }
     });

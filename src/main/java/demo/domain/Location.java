@@ -147,6 +147,7 @@ public class Location implements Comparable<Location> {
 	public String toString() {
 		return "Location{" +
 				"id='" + id + '\'' +
+				", name='" + name + '\'' +
 				", address='" + address + '\'' +
 				", city='" + city + '\'' +
 				", province='" + province + '\'' +

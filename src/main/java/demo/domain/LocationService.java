@@ -1,6 +1,5 @@
 package demo.domain;
 
-import com.gs.collections.impl.list.mutable.FastList;
 import demo.ProcessorConfig;
 import demo.geo.GeoNearPredicate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,12 +8,9 @@ import org.springframework.stereotype.Service;
 import reactor.core.Environment;
 import reactor.rx.Stream;
 import reactor.rx.action.Action;
-import reactor.rx.action.CallbackAction;
 import reactor.rx.spec.Streams;
 import reactor.tuple.Tuple;
-import reactor.tuple.Tuple2;
 
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static reactor.util.ObjectUtils.nullSafeEquals;
@@ -25,7 +21,7 @@ import static reactor.util.ObjectUtils.nullSafeEquals;
 @Service
 public class LocationService {
 
-	private final ConcurrentHashMap<String, Stream<Location>> nearbyStreams  = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Stream<Location>> nearbyStreams = new ConcurrentHashMap<>();
 
 	private final Environment        env;
 	private final LocationRepository locations;
@@ -60,42 +56,35 @@ public class LocationService {
 				// persist incoming to MongoDB
 				.map(locations::save)
 
-				// broadcast this update to others
+						// broadcast this update to others
 				.observe(locationSaveEvents::broadcastNext)
 
-				// create a distance filter using Haversine Formula
+						// create a distance filter using Haversine Formula
 				.map(l -> Tuple.of(l, new GeoNearPredicate(l.toPoint(), distance)))
 
-				// refresh cache with nearby Locations and given distance
+						// refresh cache with nearby Locations and given distance
 				.map(tup -> {
-					Stream<Location> nearby;
-					if (null != (nearby = nearbyStreams.remove(loc.getId()))) {
-						nearby.cancel();
+					Stream<Location> nearbyLocs = Streams.defer(locations.findByCoordinatesNear(loc.toPoint(), distance))
+
+							// filter out our own Location
+							.filter(nearbyLoc -> !nullSafeEquals(nearbyLoc.getId(), loc.getId()))
+
+									// filter out only Locations within given Distance
+							.filter(new GeoNearPredicate(loc.toPoint(), distance));
+					Stream<Location> oldNearbyLocs = nearbyStreams.put(loc.getId(), nearbyLocs);
+					if (null != oldNearbyLocs) {
+						oldNearbyLocs.cancel();
 					}
-					findNearby(tup.getT1(), distance);
+
+					// merge existing nearby Locations with live events
+					Streams.merge(locationSaveEvents, nearbyLocs);
+
 					return tup.getT1();
 				});
 	}
 
 	public Stream<Location> nearby(String locId) {
 		return nearbyStreams.get(locId);
-	}
-
-	private void findNearby(Location loc, Distance distance) {
-		// find nearby Locations
-		List<Location> nearbyLocs = locations.findByCoordinatesNear(loc.toPoint(), distance);
-
-		// merge existing nearby Locations with live events
-		Streams.merge(env, locationSaveEvents, Streams.defer(nearbyLocs))
-
-				// filter out our own Location
-				.filter(nearbyLoc -> !nullSafeEquals(nearbyLoc.getId(), loc.getId()))
-
-				// filter out only Locations within given Distance
-				.filter(new GeoNearPredicate(loc.toPoint(), distance))
-
-				// cache this Stream for cancellation later
-				.nest().consume(s -> nearbyStreams.put(loc.getId(), s));
 	}
 
 }

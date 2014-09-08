@@ -17,14 +17,19 @@ import ratpack.handling.Context;
 import ratpack.render.Renderer;
 import ratpack.render.RendererSupport;
 import ratpack.spring.annotation.EnableRatpack;
+import ratpack.websocket.WebSocket;
+import ratpack.websocket.WebSocketClose;
+import ratpack.websocket.WebSocketHandler;
+import ratpack.websocket.WebSocketMessage;
 import reactor.core.Environment;
 import reactor.rx.Stream;
+import reactor.rx.action.CallbackAction;
 import reactor.rx.spec.Streams;
 import reactor.spring.context.config.EnableReactor;
 
 import static ratpack.jackson.Jackson.fromJson;
 import static ratpack.jackson.Jackson.json;
-import static ratpack.websocket.WebSockets.websocketBroadcast;
+import static ratpack.websocket.WebSockets.websocket;
 
 @Configuration
 @ComponentScan
@@ -48,8 +53,6 @@ public class ProcessorApplication {
 				Location loc = ctx.parse(fromJson(Location.class));
 
 				ctx.promise(f -> locations.create(loc)
-				                          .when(Throwable.class, t -> t.printStackTrace())
-				                          .observe(l -> System.out.println("loc=" + l))
 				                          .consume(f::success))
 				   .then(ctx::render);
 			});
@@ -78,14 +81,31 @@ public class ProcessorApplication {
 			chain.handler("location/:id/nearby", ctx -> {
 				String id = ctx.getPathTokens().get("id");
 
-				Stream<Location> nearby;
-				if (null != (nearby = locations.nearby(id))) {
-					websocketBroadcast(ctx, nearby.map(l -> l.toJson(mapper)));
-				} else {
-					// We know that bad ids won't be requested
-					ctx.redirect(303, ctx.getRequest().getUri());
-				}
+				websocket(ctx, webSocketHandler(locations, mapper, id));
 			});
+		};
+	}
+
+	private WebSocketHandler<?> webSocketHandler(LocationService locations,
+	                                             ObjectMapper mapper,
+	                                             String id) {
+		return new WebSocketHandler<CallbackAction<String>>() {
+			@Override
+			public CallbackAction<String> onOpen(WebSocket ws) throws Exception {
+				return locations.nearby(id)
+				                .map(l -> l.toJson(mapper))
+				                .consume(ws::send);
+			}
+
+			@Override
+			public void onClose(WebSocketClose<CallbackAction<String>> close) throws Exception {
+				close.getOpenResult().cancel();
+			}
+
+			@Override
+			public void onMessage(WebSocketMessage<CallbackAction<String>> frame) throws Exception {
+
+			}
 		};
 	}
 
