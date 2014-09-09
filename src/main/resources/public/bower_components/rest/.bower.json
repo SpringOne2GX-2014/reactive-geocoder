@@ -21,6 +21,6 @@
     "commit": "acf479de78817562eab563b8f8a63a7aa7d854d9"
   },
   "_source": "git://github.com/cujojs/rest.git",
-  "_target": ">=1.2.0",
+  "_target": "~1.2.0",
   "_originalSource": "rest"
 }

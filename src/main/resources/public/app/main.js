@@ -116,10 +116,13 @@ var Location = function () {
             console.log("POST success: ", res);
             myLocationId = res.entity.id
 
-            var wsUrl = "ws://localhost:5050/location/" + myLocationId + "/nearby";
-            //var wsUrl = "wss://dsyerprocessor.cfapps.io:4443/location/" + myLocationId + "/nearby";
+            //var wsUrl = "ws://localhost:5050/location/" + myLocationId + "/nearby";
+            var wsUrl = "wss://dsyerprocessor.cfapps.io:4443/location/" + myLocationId + "/nearby";
             window.setTimeout(function () {
-              var ws = new WebSocket(wsUrl);
+              if (ws) {
+                ws.close();
+              }
+              ws = new WebSocket(wsUrl);
               ws.onopen = function () {
                 console.log("connected...");
                 self.nearby([]);
@@ -134,8 +137,15 @@ var Location = function () {
                 console.log("got nearby: ", msg.data);
                 self.nearby.push(JSON.parse(msg.data));
               }
-            }, 500);
+            }, 1000);
           });
+
+        // set new location marker
+        myMarker = new google.maps.Marker({
+          map: map,
+          position: loc,
+          title: self.name()
+        });
       }
     });
   };

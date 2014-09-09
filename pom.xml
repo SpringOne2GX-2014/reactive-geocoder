@@ -96,6 +96,11 @@
 
 		<!-- Reactor -->
 		<dependency>
+			<groupId>org.projectreactor</groupId>
+			<artifactId>reactor-core</artifactId>
+			<version>2.0.0.BUILD-20140909.003133-58</version>
+		</dependency>
+		<dependency>
 			<groupId>org.projectreactor.spring</groupId>
 			<artifactId>reactor-spring-context</artifactId>
 			<version>${reactor.version}</version>

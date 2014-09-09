@@ -1,6 +1,7 @@
 package demo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gs.collections.impl.map.mutable.UnifiedMap;
 import demo.domain.Location;
 import demo.domain.LocationService;
 import org.springframework.boot.SpringApplication;
@@ -27,6 +28,8 @@ import reactor.rx.action.CallbackAction;
 import reactor.rx.spec.Streams;
 import reactor.spring.context.config.EnableReactor;
 
+import java.util.Map;
+
 import static ratpack.jackson.Jackson.fromJson;
 import static ratpack.jackson.Jackson.json;
 import static ratpack.websocket.WebSockets.websocket;
@@ -46,7 +49,8 @@ public class ProcessorApplication {
 	}
 
 	@Bean
-	public Action<Chain> handlers(LocationService locations, ObjectMapper mapper) {
+	public Action<Chain> handlers(LocationService locations,
+	                              ObjectMapper mapper) {
 		return (chain) -> {
 			// Create new Location
 			chain.post("location", ctx -> {
@@ -83,17 +87,26 @@ public class ProcessorApplication {
 
 				websocket(ctx, webSocketHandler(locations, mapper, id));
 			});
+
+			chain.get("debug", ctx -> {
+				Map<String, Object> m = UnifiedMap.newMap();
+				for (Map.Entry<String, Stream<Location>> e : locations.registry().entrySet()) {
+					m.put(e.getKey(), e.getValue().debug().toMap());
+				}
+				ctx.render(json(m));
+			});
 		};
 	}
 
-	private WebSocketHandler<?> webSocketHandler(LocationService locations,
-	                                             ObjectMapper mapper,
-	                                             String id) {
+	private static WebSocketHandler<?> webSocketHandler(LocationService locations,
+	                                                    ObjectMapper mapper,
+	                                                    String id) {
 		return new WebSocketHandler<CallbackAction<String>>() {
 			@Override
 			public CallbackAction<String> onOpen(WebSocket ws) throws Exception {
 				return locations.nearby(id)
 				                .map(l -> l.toJson(mapper))
+				                .observe(s -> System.out.println(id + ": " + s))
 				                .consume(ws::send);
 			}
 

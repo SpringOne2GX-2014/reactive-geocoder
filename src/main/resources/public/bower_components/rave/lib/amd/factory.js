@@ -3,8 +3,8 @@
 /** @author John Hann */
 module.exports = amdFactory;
 
-var es5Transform = require('./es5Transform');
-var createRequire = require('./createRequire');
+var es5Transform = require('./../es5Transform');
+var createRequire = require('./../createRequire');
 
 function amdFactory (loader, defineArgs, load) {
 	var cjsRequire, require, exports, module, scopedVars;
@@ -42,7 +42,7 @@ function amdFactory (loader, defineArgs, load) {
 
 		// AMD factory result trumps all. if it's undefined, we
 		// may be using CommonJS syntax.
-		if (typeof result !== 'undefined' || !defineArgs.isCjs) {
+		if (typeof result !== 'undefined' || !hasCjsExports(defineArgs)) {
 			return es5Transform.toLoader(result); // a single default export
 		}
 		else {
@@ -76,4 +76,18 @@ function amdFactory (loader, defineArgs, load) {
 			? scopedVars[id]
 			: cjsRequire.async(id);
 	}
+}
+
+function hasCjsExports (def) {
+	return def.depsList
+		? hasCommonJSDep(def.depsList)
+		: def.factory.length > 1;
+}
+
+function hasCommonJSDep (deps) {
+	// check if module requires `module` or `exports`
+	for (var i = deps.length - 1; i >= 0; i--) {
+		if (deps[i] === 'exports' || deps[i] === 'module') return true;
+	}
+	return false;
 }

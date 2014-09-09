@@ -5,7 +5,7 @@
   "main": "app/main.js",
   "moduleType": ["node"],
   "dependencies": {
-    "rave": "~0.3.0",
+    "rave": "~0.3.1",
     "rest": "~1.2.0",
     "knockout": "~3.2.0",
     "foundation": "~5.4.3"

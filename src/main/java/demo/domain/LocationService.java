@@ -6,11 +6,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.geo.Distance;
 import org.springframework.stereotype.Service;
 import reactor.core.Environment;
+import reactor.event.dispatch.Dispatcher;
 import reactor.rx.Stream;
 import reactor.rx.action.Action;
 import reactor.rx.spec.Streams;
 import reactor.tuple.Tuple;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static reactor.util.ObjectUtils.nullSafeEquals;
@@ -41,6 +43,10 @@ public class LocationService {
 		locations.deleteAll();
 	}
 
+	public Map<String, Stream<Location>> registry() {
+		return this.nearbyStreams;
+	}
+
 	public Action<String, Location> findOne(String id) {
 		return Streams.defer(env, env.getDefaultDispatcherFactory().get(), id)
 		              .<Location>map(locations::findOne);
@@ -51,7 +57,9 @@ public class LocationService {
 	}
 
 	public Stream<Location> update(Location loc, Distance distance) {
-		return Streams.defer(env, env.getDefaultDispatcherFactory().get(), loc)
+		final Dispatcher dispatcher = env.getDefaultDispatcherFactory().get();
+
+		return Streams.defer(env, dispatcher, loc)
 
 				// persist incoming to MongoDB
 				.map(locations::save)
@@ -64,20 +72,20 @@ public class LocationService {
 
 						// refresh cache with nearby Locations and given distance
 				.map(tup -> {
-					Stream<Location> nearbyLocs = Streams.defer(locations.findByCoordinatesNear(loc.toPoint(), distance))
+					if (nearbyStreams.containsKey(loc.getId())) {
+						nearbyStreams.get(loc.getId()).cancel();
+					}
+
+					// merge existing nearby Locations with live events
+					Streams.merge(env, dispatcher, locationSaveEvents, Streams.defer(locations.findAll()))
 
 							// filter out our own Location
 							.filter(nearbyLoc -> !nullSafeEquals(nearbyLoc.getId(), loc.getId()))
 
 									// filter out only Locations within given Distance
-							.filter(new GeoNearPredicate(loc.toPoint(), distance));
-					Stream<Location> oldNearbyLocs = nearbyStreams.put(loc.getId(), nearbyLocs);
-					if (null != oldNearbyLocs) {
-						oldNearbyLocs.cancel();
-					}
+							.filter(tup.getT2())
 
-					// merge existing nearby Locations with live events
-					Streams.merge(locationSaveEvents, nearbyLocs);
+							.nest().consume(s -> nearbyStreams.put(loc.getId(), s));
 
 					return tup.getT1();
 				});
