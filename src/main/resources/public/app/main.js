@@ -87,8 +87,8 @@ var Location = function () {
       return;
     }
 
-    //var wsUrl = "wss://geocoder.cfapps.io:4443/location/" + locId + "/nearby";
-    var wsUrl = "ws://localhost:5050/location/" + self.locationId() + "/nearby?distance=" + self.distance();
+    var wsUrl = "wss://geocoder.cfapps.io:4443/location/" + self.locationId() + "/nearby?distance=" + self.distance();
+    //var wsUrl = "ws://localhost:5050/location/" + self.locationId() + "/nearby?distance=" + self.distance();
     console.log("opening WebSocket connection to ", wsUrl);
     var ws;
     if ((ws = self.websocket())) {

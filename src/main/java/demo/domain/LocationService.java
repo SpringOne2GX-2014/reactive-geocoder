@@ -79,36 +79,6 @@ public class LocationService {
 					        .filter(tup.getT2())
 					        .consume(sink);
 		        });
-//
-//		Stream<Location> nearbyLocs = Streams.merge(env,
-//		                                            s.getDispatcher(),
-//		                                            locationSaveEvents,
-//		                                            Streams.defer(locations.findAll()))
-//				.observe(l -> log.info("nearby: {}", l))
-//						// filter out our own Location
-//				.filter(nearbyLoc -> !nullSafeEquals(nearbyLoc.getId(), locId))
-//				.observe(l -> log.info("after !me filter"))
-//				.observe(l -> log.info("debug: {}", s.debug()))
-//
-//						// filter out only Locations within given Distance
-//				.filter(filter);
-//
-//		// merge existing nearby Locations with live events
-//		return s.map(l -> new GeoNearPredicate(l.toPoint(), new Distance(distance)))
-//		        .flatMap(filter -> {
-//			        Stream<Location> nearbyLocs = Streams.defer(locations.findAll());
-//
-//			        log.info("before merge...");
-//			        return Streams.merge(env, s.getDispatcher(), locationSaveEvents, nearbyLocs)
-//					        .observe(l -> log.info("nearby: {}", l))
-//							        // filter out our own Location
-//					        .filter(nearbyLoc -> !nullSafeEquals(nearbyLoc.getId(), locId))
-//					        .observe(l -> log.info("after !me filter"))
-//					        .observe(l -> log.info("debug: {}", s.debug()))
-//
-//							        // filter out only Locations within given Distance
-//					        .filter(filter);
-//		        });
 	}
 
 }
