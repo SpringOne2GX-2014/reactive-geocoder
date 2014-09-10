@@ -24,7 +24,6 @@ import ratpack.websocket.WebSocketHandler;
 import ratpack.websocket.WebSocketMessage;
 import reactor.core.Environment;
 import reactor.rx.Stream;
-import reactor.rx.action.CallbackAction;
 import reactor.rx.spec.Streams;
 import reactor.spring.context.config.EnableReactor;
 
@@ -100,20 +99,19 @@ public class ProcessorApplication {
 	                                                    ObjectMapper mapper,
 	                                                    String id,
 	                                                    int distance) {
-		return new WebSocketHandler<Stream<Location>>() {
+		return new WebSocketHandler<Stream<?>>() {
 			@Override
-			public Stream<Location> onOpen(WebSocket ws) throws Exception {
-				return locations.nearby(id, distance, null)
-						.consume(l -> ws.send(l.toJson(mapper)));
+			public Stream<?> onOpen(WebSocket ws) throws Exception {
+				return locations.nearby(id, distance, l -> ws.send(l.toJson(mapper)));
 			}
 
 			@Override
-			public void onClose(WebSocketClose<Stream<Location>> close) throws Exception {
+			public void onClose(WebSocketClose<Stream<?>> close) throws Exception {
 				close.getOpenResult().cancel();
 			}
 
 			@Override
-			public void onMessage(WebSocketMessage<Stream<Location>> frame) throws Exception {
+			public void onMessage(WebSocketMessage<Stream<?>> frame) throws Exception {
 
 			}
 		};
