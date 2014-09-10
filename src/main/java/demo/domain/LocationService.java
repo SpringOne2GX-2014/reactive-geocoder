@@ -11,7 +11,6 @@ import reactor.function.Consumer;
 import reactor.rx.Stream;
 import reactor.rx.action.Action;
 import reactor.rx.spec.Streams;
-import reactor.tuple.Tuple;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -57,7 +56,7 @@ public class LocationService {
 				// persist incoming to MongoDB
 				.map(locations::save)
 
-						// broadcast this update to others
+				// broadcast this update to others
 				.observe(locationSaveEvents::broadcastNext);
 	}
 
@@ -65,20 +64,20 @@ public class LocationService {
 	public Stream<?> nearby(String locId, int distance, Consumer<Location> sink) {
 		Stream<Location> s = findOne(locId);
 
-		return s.map(l -> Tuple.of(l, new GeoNearPredicate(l.toPoint(), new Distance(distance))))
-		        .consume(tup -> {
-			        Stream<Location> nearbyLocs = Streams.defer(locations.findAll());
-			        Streams.<Location>merge(env, s.getDispatcher(), locationSaveEvents, nearbyLocs)
-					        .observe(l -> log.info("nearby: {}", l))
-							        // filter out our own Location
-					        .filter(nearbyLoc -> !nullSafeEquals(nearbyLoc.getId(), locId))
-					        .observe(l -> log.info("after !me filter"))
-					        .observe(l -> log.info("debug: {}", s.debug()))
+		return s.consume(l -> {
+			Stream<Location> nearbyLocs = Streams.defer(locations.findAll());
 
-							        // filter out only Locations within given Distance
-					        .filter(tup.getT2())
-					        .consume(sink);
-		        });
+			// merge historical and live data
+			Streams.merge(env, s.getDispatcher(), locationSaveEvents, nearbyLocs)
+
+					// filter out our own Location
+					.filter(nearbyLoc -> !nullSafeEquals(nearbyLoc.getId(), locId))
+
+					// filter out only Locations within given Distance
+					.filter(new GeoNearPredicate(l.toPoint(), new Distance(distance)))
+
+					.consume(sink);
+		});
 	}
 
 }
