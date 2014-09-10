@@ -10,7 +10,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.geo.Distance;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import ratpack.func.Action;
 import ratpack.handling.Chain;
@@ -18,6 +17,7 @@ import ratpack.handling.Context;
 import ratpack.render.Renderer;
 import ratpack.render.RendererSupport;
 import ratpack.spring.annotation.EnableRatpack;
+import ratpack.util.MultiValueMap;
 import ratpack.websocket.WebSocket;
 import ratpack.websocket.WebSocketClose;
 import ratpack.websocket.WebSocketHandler;
@@ -56,7 +56,7 @@ public class ProcessorApplication {
 			chain.post("location", ctx -> {
 				Location loc = ctx.parse(fromJson(Location.class));
 
-				ctx.promise(f -> locations.create(loc)
+				ctx.promise(f -> locations.update(loc)
 				                          .consume(f::success))
 				   .then(ctx::render);
 			});
@@ -64,9 +64,6 @@ public class ProcessorApplication {
 			// Update existing Location
 			chain.put("location/:id", ctx -> {
 				String id = ctx.getPathTokens().get("id");
-				int distance = Integer.valueOf(ctx.getRequest()
-				                                  .getQueryParams()
-				                                  .get("distance"));
 				Location inLoc = ctx.parse(fromJson(Location.class));
 
 				ctx.promise(f -> locations.findOne(id)
@@ -75,8 +72,7 @@ public class ProcessorApplication {
 				                                                          .setCity(inLoc.getCity())
 				                                                          .setProvince(inLoc.getProvince())
 				                                                          .setPostalCode(inLoc.getPostalCode())
-				                                                          .setCoordinates(inLoc.getCoordinates()),
-				                                                         new Distance(distance)))
+				                                                          .setCoordinates(inLoc.getCoordinates())))
 				                          .consume(f::success))
 				   .then(ctx::render);
 			});
@@ -84,8 +80,10 @@ public class ProcessorApplication {
 			// Watch for updates of Locations near us
 			chain.handler("location/:id/nearby", ctx -> {
 				String id = ctx.getPathTokens().get("id");
+				MultiValueMap<String, String> params = ctx.getRequest().getQueryParams();
+				int distance = (params.containsKey("distance") ? Integer.valueOf(params.get("distance")) : 20);
 
-				websocket(ctx, webSocketHandler(locations, mapper, id));
+				websocket(ctx, webSocketHandler(locations, mapper, id, distance));
 			});
 
 			chain.get("debug", ctx -> {
@@ -100,23 +98,21 @@ public class ProcessorApplication {
 
 	private static WebSocketHandler<?> webSocketHandler(LocationService locations,
 	                                                    ObjectMapper mapper,
-	                                                    String id) {
-		return new WebSocketHandler<CallbackAction<String>>() {
+	                                                    String id,
+	                                                    int distance) {
+		return new WebSocketHandler<Stream<Location>>() {
 			@Override
-			public CallbackAction<String> onOpen(WebSocket ws) throws Exception {
-				return locations.nearby(id)
-				                .map(l -> l.toJson(mapper))
-				                .observe(s -> System.out.println(id + ": " + s))
-				                .consume(ws::send);
+			public Stream<Location> onOpen(WebSocket ws) throws Exception {
+				return locations.nearby(id, distance, l -> ws.send(l.toJson(mapper)));
 			}
 
 			@Override
-			public void onClose(WebSocketClose<CallbackAction<String>> close) throws Exception {
+			public void onClose(WebSocketClose<Stream<Location>> close) throws Exception {
 				close.getOpenResult().cancel();
 			}
 
 			@Override
-			public void onMessage(WebSocketMessage<CallbackAction<String>> frame) throws Exception {
+			public void onMessage(WebSocketMessage<Stream<Location>> frame) throws Exception {
 
 			}
 		};
