@@ -103,7 +103,8 @@ public class ProcessorApplication {
 		return new WebSocketHandler<Stream<Location>>() {
 			@Override
 			public Stream<Location> onOpen(WebSocket ws) throws Exception {
-				return locations.nearby(id, distance, l -> ws.send(l.toJson(mapper)));
+				return locations.nearby(id, distance, null)
+						.consume(l -> ws.send(l.toJson(mapper)));
 			}
 
 			@Override

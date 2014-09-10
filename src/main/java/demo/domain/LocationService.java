@@ -7,11 +7,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.geo.Distance;
 import org.springframework.stereotype.Service;
 import reactor.core.Environment;
+import reactor.event.dispatch.Dispatcher;
 import reactor.function.Consumer;
 import reactor.rx.Stream;
 import reactor.rx.action.Action;
 import reactor.rx.spec.Streams;
-import reactor.tuple.Tuple;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -62,21 +62,24 @@ public class LocationService {
 	}
 
 	public Stream<Location> nearby(String locId, int distance, Consumer<Location> sink) {
+		final Dispatcher dispatcher = env.getDefaultDispatcherFactory().get();
+
 		// merge existing nearby Locations with live events
-		Stream<Location> s = Streams.defer(env, env.getDefaultDispatcherFactory().get(), locId)
-		                            .<Location>map(locations::findOne);
+		return Streams.defer(env, dispatcher, locId)
+		              .<Location>map(locations::findOne)
+		              .map(l -> new GeoNearPredicate(l.toPoint(), new Distance(distance)))
+		              .observe(l -> log.info("after predicate: {}", l))
+		              .flatMap(filter -> {
+			              log.info("before merge...");
+			              return Streams.merge(env, dispatcher, locationSaveEvents, Streams.defer(locations.findAll()))
+					              .observe(l -> log.info("nearby: {}", l))
+							              // filter out our own Location
+					              .filter(nearbyLoc -> !nullSafeEquals(nearbyLoc.getId(), locId))
+					              .observe(l -> log.info("after !me filter"))
 
-		s.map(l -> Tuple.of(l, new GeoNearPredicate(l.toPoint(), new Distance(distance))))
-		 .consume(tup -> Streams.merge(env, s.getDispatcher(), locationSaveEvents, Streams.defer(locations.findAll()))
-				 // filter out our own Location
-				 .filter(nearbyLoc -> !nullSafeEquals(nearbyLoc.getId(), locId))
-
-						 // filter out only Locations within given Distance
-				 .filter(tup.getT2())
-
-				 .consume(sink));
-
-		return s;
+							              // filter out only Locations within given Distance
+					              .filter(filter);
+		              });
 	}
 
 }
