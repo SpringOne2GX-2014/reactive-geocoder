@@ -17,10 +17,6 @@ import ratpack.handling.Context;
 import ratpack.render.Renderer;
 import ratpack.render.RendererSupport;
 import ratpack.spring.annotation.EnableRatpack;
-import ratpack.websocket.WebSocket;
-import ratpack.websocket.WebSocketClose;
-import ratpack.websocket.WebSocketHandler;
-import ratpack.websocket.WebSocketMessage;
 import reactor.core.Environment;
 import reactor.rx.Stream;
 import reactor.rx.spec.Streams;
@@ -28,7 +24,7 @@ import reactor.spring.context.config.EnableReactor;
 
 import static ratpack.jackson.Jackson.fromJson;
 import static ratpack.jackson.Jackson.json;
-import static ratpack.websocket.WebSockets.websocket;
+import static ratpack.websocket.WebSockets.websocketBroadcast;
 
 @Configuration
 @ComponentScan
@@ -76,7 +72,8 @@ public class ProcessorApplication {
 				                                  .getQueryParams()
 				                                  .get("distance"));
 
-				websocket(ctx, webSocketHandler(locations, mapper, id, distance));
+				websocketBroadcast(ctx, locations.nearby(id, distance)
+				                                 .map(l -> l.toJson(mapper)));
 			});
 		};
 	}
@@ -84,28 +81,6 @@ public class ProcessorApplication {
 	@Bean
 	public ModelMapper beanMapper() {
 		return new ModelMapper();
-	}
-
-	private static WebSocketHandler<?> webSocketHandler(LocationService locations,
-	                                                    ObjectMapper mapper,
-	                                                    String id,
-	                                                    int distance) {
-		return new WebSocketHandler<Stream<?>>() {
-			@Override
-			public Stream<?> onOpen(WebSocket ws) throws Exception {
-				return locations.nearby(id, distance, l -> ws.send(l.toJson(mapper)));
-			}
-
-			@Override
-			public void onClose(WebSocketClose<Stream<?>> close) throws Exception {
-				close.getOpenResult().cancel();
-			}
-
-			@Override
-			public void onMessage(WebSocketMessage<Stream<?>> frame) throws Exception {
-
-			}
-		};
 	}
 
 	@Bean

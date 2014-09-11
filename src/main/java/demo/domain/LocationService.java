@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.geo.Distance;
 import org.springframework.stereotype.Service;
 import reactor.core.Environment;
-import reactor.function.Consumer;
 import reactor.rx.Stream;
 import reactor.rx.action.Action;
 import reactor.rx.spec.Streams;
@@ -60,23 +59,21 @@ public class LocationService {
 				.observe(locationSaveEvents::broadcastNext);
 	}
 
-	public Stream<?> nearby(String myLocId, int distance, Consumer<Location> sink) {
+	public Stream<Location> nearby(String myLocId, int distance) {
 		Stream<Location> s = findOne(myLocId);
 
-		return s.consume(myLoc -> {
-			Stream<Location> historical = Streams.defer(locations.findAll());
+		return s.flatMap(myLoc ->
+				                 // merge historical and live data
+				                 Streams.merge(env, s.getDispatcher(),
+				                               locationSaveEvents,
+				                               Streams.defer(locations.findAll()))
 
-			// merge historical and live data
-			Streams.merge(env, s.getDispatcher(), locationSaveEvents, historical)
+						                 // not us
+						                 .filter(l -> !nullSafeEquals(l.getId(), myLocId))
 
-					// not us
-					.filter(l -> !nullSafeEquals(l.getId(), myLocId))
-
-					// only Locations within given Distance
-					.filter(new GeoNearPredicate(myLoc.toPoint(), new Distance(distance)))
-
-					.consume(sink);
-		});
+								                 // only Locations within given Distance
+						                 .filter(new GeoNearPredicate(myLoc.toPoint(), new Distance(distance)))
+		);
 	}
 
 }
