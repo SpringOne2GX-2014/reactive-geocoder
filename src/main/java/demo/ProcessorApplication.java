@@ -1,9 +1,9 @@
 package demo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gs.collections.impl.map.mutable.UnifiedMap;
 import demo.domain.Location;
 import demo.domain.LocationService;
+import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -17,7 +17,6 @@ import ratpack.handling.Context;
 import ratpack.render.Renderer;
 import ratpack.render.RendererSupport;
 import ratpack.spring.annotation.EnableRatpack;
-import ratpack.util.MultiValueMap;
 import ratpack.websocket.WebSocket;
 import ratpack.websocket.WebSocketClose;
 import ratpack.websocket.WebSocketHandler;
@@ -26,8 +25,6 @@ import reactor.core.Environment;
 import reactor.rx.Stream;
 import reactor.rx.spec.Streams;
 import reactor.spring.context.config.EnableReactor;
-
-import java.util.Map;
 
 import static ratpack.jackson.Jackson.fromJson;
 import static ratpack.jackson.Jackson.json;
@@ -49,7 +46,8 @@ public class ProcessorApplication {
 
 	@Bean
 	public Action<Chain> handlers(LocationService locations,
-	                              ObjectMapper mapper) {
+	                              ObjectMapper mapper,
+	                              ModelMapper beanMapper) {
 		return (chain) -> {
 			// Create new Location
 			chain.post("location", ctx -> {
@@ -63,15 +61,10 @@ public class ProcessorApplication {
 			// Update existing Location
 			chain.put("location/:id", ctx -> {
 				String id = ctx.getPathTokens().get("id");
-				Location inLoc = ctx.parse(fromJson(Location.class));
 
 				ctx.promise(f -> locations.findOne(id)
-				                          .flatMap(l -> locations.update(l.setName(inLoc.getName())
-				                                                          .setAddress(inLoc.getAddress())
-				                                                          .setCity(inLoc.getCity())
-				                                                          .setProvince(inLoc.getProvince())
-				                                                          .setPostalCode(inLoc.getPostalCode())
-				                                                          .setCoordinates(inLoc.getCoordinates())))
+				                          .observe(l -> beanMapper.map(l, ctx.parse(fromJson(Location.class))))
+				                          .flatMap(locations::update)
 				                          .consume(f::success))
 				   .then(ctx::render);
 			});
@@ -79,20 +72,18 @@ public class ProcessorApplication {
 			// Watch for updates of Locations near us
 			chain.handler("location/:id/nearby", ctx -> {
 				String id = ctx.getPathTokens().get("id");
-				MultiValueMap<String, String> params = ctx.getRequest().getQueryParams();
-				int distance = (params.containsKey("distance") ? Integer.valueOf(params.get("distance")) : 20);
+				int distance = Integer.valueOf(ctx.getRequest()
+				                                  .getQueryParams()
+				                                  .get("distance"));
 
 				websocket(ctx, webSocketHandler(locations, mapper, id, distance));
 			});
-
-			chain.get("debug", ctx -> {
-				Map<String, Object> m = UnifiedMap.newMap();
-				for (Map.Entry<String, Stream<Location>> e : locations.registry().entrySet()) {
-					m.put(e.getKey(), e.getValue().debug().toMap());
-				}
-				ctx.render(json(m));
-			});
 		};
+	}
+
+	@Bean
+	public ModelMapper beanMapper() {
+		return new ModelMapper();
 	}
 
 	private static WebSocketHandler<?> webSocketHandler(LocationService locations,

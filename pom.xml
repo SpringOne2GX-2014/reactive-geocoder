@@ -14,7 +14,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>1.1.5.RELEASE</version>
+		<version>1.1.6.RELEASE</version>
 		<relativePath/>
 	</parent>
 
@@ -50,22 +50,6 @@
 	</repositories>
 
 	<dependencies>
-		<!-- Spring Cloud Netflix -->
-		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-starter-eureka</artifactId>
-			<exclusions>
-				<exclusion>
-					<artifactId>spring-boot-starter-tomcat</artifactId>
-					<groupId>org.springframework.boot</groupId>
-				</exclusion>
-				<exclusion>
-					<artifactId>spring-webmvc</artifactId>
-					<groupId>org.springframework</groupId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-
 		<!-- Spring -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -80,11 +64,6 @@
 		</dependency>
 		<dependency>
 			<groupId>io.ratpack</groupId>
-			<artifactId>ratpack-groovy</artifactId>
-			<version>${ratpack.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.ratpack</groupId>
 			<artifactId>ratpack-jackson</artifactId>
 			<version>${ratpack.version}</version>
 		</dependency>
@@ -94,12 +73,14 @@
 			<version>${spring-boot-ratpack.version}</version>
 		</dependency>
 
-		<!-- Reactor -->
+		<!-- ModelMapper -->
 		<dependency>
-			<groupId>org.projectreactor</groupId>
-			<artifactId>reactor-core</artifactId>
-			<version>2.0.0.BUILD-20140909.003133-58</version>
+			<groupId>org.modelmapper</groupId>
+			<artifactId>modelmapper</artifactId>
+			<version>0.7.2</version>
 		</dependency>
+
+		<!-- Reactor -->
 		<dependency>
 			<groupId>org.projectreactor.spring</groupId>
 			<artifactId>reactor-spring-context</artifactId>
