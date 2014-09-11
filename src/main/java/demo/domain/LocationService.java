@@ -56,25 +56,24 @@ public class LocationService {
 				// persist incoming to MongoDB
 				.map(locations::save)
 
-				// broadcast this update to others
+						// broadcast this update to others
 				.observe(locationSaveEvents::broadcastNext);
 	}
 
-	@SuppressWarnings({"unchecked"})
-	public Stream<?> nearby(String locId, int distance, Consumer<Location> sink) {
-		Stream<Location> s = findOne(locId);
+	public Stream<?> nearby(String myLocId, int distance, Consumer<Location> sink) {
+		Stream<Location> s = findOne(myLocId);
 
-		return s.consume(l -> {
-			Stream<Location> nearbyLocs = Streams.defer(locations.findAll());
+		return s.consume(myLoc -> {
+			Stream<Location> historical = Streams.defer(locations.findAll());
 
 			// merge historical and live data
-			Streams.merge(env, s.getDispatcher(), locationSaveEvents, nearbyLocs)
+			Streams.merge(env, s.getDispatcher(), locationSaveEvents, historical)
 
-					// filter out our own Location
-					.filter(nearbyLoc -> !nullSafeEquals(nearbyLoc.getId(), locId))
+					// not us
+					.filter(l -> !nullSafeEquals(l.getId(), myLocId))
 
-					// filter out only Locations within given Distance
-					.filter(new GeoNearPredicate(l.toPoint(), new Distance(distance)))
+					// only Locations within given Distance
+					.filter(new GeoNearPredicate(myLoc.toPoint(), new Distance(distance)))
 
 					.consume(sink);
 		});
