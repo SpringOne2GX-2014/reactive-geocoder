@@ -82,6 +82,11 @@
 
 		<!-- Reactor -->
 		<dependency>
+			<groupId>org.projectreactor</groupId>
+			<artifactId>reactor-core</artifactId>
+			<version>${reactor.version}</version>
+		</dependency>
+		<dependency>
 			<groupId>org.projectreactor.spring</groupId>
 			<artifactId>reactor-spring-context</artifactId>
 			<version>${reactor.version}</version>

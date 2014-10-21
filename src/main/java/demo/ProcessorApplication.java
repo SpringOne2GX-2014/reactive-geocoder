@@ -19,7 +19,8 @@ import ratpack.render.RendererSupport;
 import ratpack.spring.annotation.EnableRatpack;
 import reactor.core.Environment;
 import reactor.rx.Stream;
-import reactor.rx.spec.Streams;
+import reactor.rx.Streams;
+import reactor.rx.stream.HotStream;
 import reactor.spring.context.config.EnableReactor;
 
 import static ratpack.jackson.Jackson.fromJson;
@@ -36,7 +37,7 @@ import static ratpack.websocket.WebSockets.websocketBroadcast;
 public class ProcessorApplication {
 
 	@Bean
-	public Stream<Location> locationEventStream(Environment env) {
+	public HotStream<Location> locationEventStream(Environment env) {
 		return Streams.defer(env);
 	}
 

@@ -8,8 +8,8 @@ import org.springframework.data.geo.Distance;
 import org.springframework.stereotype.Service;
 import reactor.core.Environment;
 import reactor.rx.Stream;
-import reactor.rx.action.Action;
-import reactor.rx.spec.Streams;
+import reactor.rx.Streams;
+import reactor.rx.stream.HotStream;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,14 +25,14 @@ public class LocationService {
 	private final Logger                                      log           = LoggerFactory.getLogger(getClass());
 	private final ConcurrentHashMap<String, Stream<Location>> nearbyStreams = new ConcurrentHashMap<>();
 
-	private final Environment        env;
-	private final LocationRepository locations;
-	private final Stream<Location>   locationSaveEvents;
+	private final Environment         env;
+	private final LocationRepository  locations;
+	private final HotStream<Location> locationSaveEvents;
 
 	@Autowired
 	public LocationService(Environment env,
 	                       LocationRepository locations,
-	                       Stream<Location> locationSaveEvents) {
+	                       HotStream<Location> locationSaveEvents) {
 		this.env = env;
 		this.locations = locations;
 		this.locationSaveEvents = locationSaveEvents;
@@ -44,15 +44,17 @@ public class LocationService {
 		return this.nearbyStreams;
 	}
 
-	public Action<String, Location> findOne(String id) {
-		return Streams.defer(env, env.getDefaultDispatcherFactory().get(), id)
+	public Stream<Location> findOne(String id) {
+		return Streams.just(id)
+		              .dispatchOn(env, env.getDefaultDispatcherFactory().get())
 		              .<Location>map(locations::findOne);
 	}
 
 	public Stream<Location> update(Location loc) {
-		return Streams.defer(env, env.getDefaultDispatcherFactory().get(), loc)
+		return Streams.just(loc)
+				.dispatchOn(env, env.getDefaultDispatcherFactory().get())
 
-				// persist incoming to MongoDB
+						// persist incoming to MongoDB
 				.map(locations::save)
 
 						// broadcast this update to others
@@ -64,11 +66,11 @@ public class LocationService {
 
 		return s.flatMap(myLoc ->
 				                 // merge historical and live data
-				                 Streams.merge(env, s.getDispatcher(),
-				                               locationSaveEvents,
+				                 Streams.merge(locationSaveEvents,
 				                               Streams.defer(locations.findAll()))
+						                 .dispatchOn(env, s.getDispatcher())
 
-						                 // not us
+								                 // not us
 						                 .filter(l -> !nullSafeEquals(l.getId(), myLocId))
 
 								                 // only Locations within given Distance
