@@ -6,7 +6,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.geo.Point;
 import org.springframework.data.mongodb.core.index.GeoSpatialIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;
-import reactor.util.ObjectUtils;
+import reactor.core.support.ObjectUtils;
 
 /**
  * @author Jon Brisbin

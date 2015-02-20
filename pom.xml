@@ -14,7 +14,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>1.1.6.RELEASE</version>
+		<version>1.2.1.RELEASE</version>
 		<relativePath/>
 	</parent>
 
@@ -82,12 +82,12 @@
 
 		<!-- Reactor -->
 		<dependency>
-			<groupId>org.projectreactor</groupId>
+			<groupId>io.projectreactor</groupId>
 			<artifactId>reactor-core</artifactId>
 			<version>${reactor.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>org.projectreactor.spring</groupId>
+			<groupId>io.projectreactor.spring</groupId>
 			<artifactId>reactor-spring-context</artifactId>
 			<version>${reactor.version}</version>
 		</dependency>
@@ -106,7 +106,7 @@
 		<java.version>1.8</java.version>
 		<spring-boot-ratpack.version>1.0.0.BUILD-SNAPSHOT</spring-boot-ratpack.version>
 		<reactor.version>2.0.0.BUILD-SNAPSHOT</reactor.version>
-		<ratpack.version>0.9.9-SNAPSHOT</ratpack.version>
+		<ratpack.version>0.9.11-SNAPSHOT</ratpack.version>
 	</properties>
 
 	<build>
