@@ -18,6 +18,7 @@ import ratpack.render.Renderer;
 import ratpack.render.RendererSupport;
 import ratpack.spring.annotation.EnableRatpack;
 import reactor.Environment;
+import reactor.rx.Streams;
 import reactor.rx.broadcast.Broadcaster;
 import reactor.spring.context.config.EnableReactor;
 
@@ -39,7 +40,7 @@ public class ProcessorApplication {
     }
 
     @Bean
-    public Broadcaster<Location> locationEventStream() {
+    public Broadcaster<Location> locationEventStream(Environment env) {
         return Broadcaster.create();
     }
 

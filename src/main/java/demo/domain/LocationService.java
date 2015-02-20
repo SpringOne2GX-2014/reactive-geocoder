@@ -46,13 +46,13 @@ public class LocationService {
 
     public Stream<Location> findOne(String id) {
         return Streams.just(id)
-                .dispatchOn(Environment.cachedDispatcher())
+                .dispatchOn(Environment.get())
                 .<Location>map(locations::findOne);
     }
 
     public Stream<Location> update(Location loc) {
         return Streams.just(loc)
-                .dispatchOn(Environment.cachedDispatcher())
+                .dispatchOn(Environment.get())
 
                 // persist incoming to MongoDB
                 .map(locations::save)
@@ -68,7 +68,7 @@ public class LocationService {
                         // merge historical and live data
                         Streams.merge(locationSaveEvents,
                                 Streams.from(locations.findAll())
-                                .dispatchOn(Environment.cachedDispatcher())
+                                .dispatchOn(Environment.get())
 
                                 // not us
                                 .filter(l -> !nullSafeEquals(l.getId(), myLocId))

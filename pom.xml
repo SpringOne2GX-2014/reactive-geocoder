@@ -106,7 +106,7 @@
 		<java.version>1.8</java.version>
 		<spring-boot-ratpack.version>1.0.0.BUILD-SNAPSHOT</spring-boot-ratpack.version>
 		<reactor.version>2.0.0.BUILD-SNAPSHOT</reactor.version>
-		<ratpack.version>0.9.9-SNAPSHOT</ratpack.version>
+		<ratpack.version>0.9.11-SNAPSHOT</ratpack.version>
 	</properties>
 
 	<build>
