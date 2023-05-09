@@ -17,10 +17,9 @@ import ratpack.handling.Context;
 import ratpack.render.Renderer;
 import ratpack.render.RendererSupport;
 import ratpack.spring.annotation.EnableRatpack;
-import reactor.core.Environment;
-import reactor.rx.Stream;
+import reactor.Environment;
 import reactor.rx.Streams;
-import reactor.rx.stream.HotStream;
+import reactor.rx.broadcast.Broadcaster;
 import reactor.spring.context.config.EnableReactor;
 
 import static ratpack.jackson.Jackson.fromJson;
@@ -36,66 +35,70 @@ import static ratpack.websocket.WebSockets.websocketBroadcast;
 @EnableReactor
 public class ProcessorApplication {
 
-	@Bean
-	public HotStream<Location> locationEventStream(Environment env) {
-		return Streams.defer(env);
-	}
+    static {
+        Environment.initialize();
+    }
 
-	@Bean
-	public Action<Chain> handlers(LocationService locations,
-	                              ObjectMapper mapper,
-	                              ModelMapper beanMapper) {
-		return (chain) -> {
-			// Create new Location
-			chain.post("location", ctx -> {
-				Location loc = ctx.parse(fromJson(Location.class));
+    @Bean
+    public Broadcaster<Location> locationEventStream(Environment env) {
+        return Broadcaster.create();
+    }
 
-				ctx.promise(f -> locations.update(loc)
-				                          .consume(f::success))
-				   .then(ctx::render);
-			});
+    @Bean
+    public Action<Chain> handlers(LocationService locations,
+                                  ObjectMapper mapper,
+                                  ModelMapper beanMapper) {
+        return (chain) -> {
+            // Create new Location
+            chain.post("location", ctx -> {
+                Location loc = ctx.parse(fromJson(Location.class));
 
-			// Update existing Location
-			chain.put("location/:id", ctx -> {
-				String id = ctx.getPathTokens().get("id");
+                ctx.promise(f -> locations.update(loc)
+                        .consume(f::success))
+                        .then(ctx::render);
+            });
 
-				ctx.promise(f -> locations.findOne(id)
-				                          .observe(l -> beanMapper.map(l, ctx.parse(fromJson(Location.class))))
-				                          .flatMap(locations::update)
-				                          .consume(f::success))
-				   .then(ctx::render);
-			});
+            // Update existing Location
+            chain.put("location/:id", ctx -> {
+                String id = ctx.getPathTokens().get("id");
 
-			// Watch for updates of Locations near us
-			chain.handler("location/:id/nearby", ctx -> {
-				String id = ctx.getPathTokens().get("id");
-				int distance = Integer.valueOf(ctx.getRequest()
-				                                  .getQueryParams()
-				                                  .get("distance"));
+                ctx.promise(f -> locations.findOne(id)
+                        .observe(l -> beanMapper.map(l, ctx.parse(fromJson(Location.class))))
+                        .flatMap(locations::update)
+                        .consume(f::success))
+                        .then(ctx::render);
+            });
 
-				websocketBroadcast(ctx, locations.nearby(id, distance)
-				                                 .map(l -> l.toJson(mapper)));
-			});
-		};
-	}
+            // Watch for updates of Locations near us
+            chain.handler("location/:id/nearby", ctx -> {
+                String id = ctx.getPathTokens().get("id");
+                int distance = Integer.valueOf(ctx.getRequest()
+                        .getQueryParams()
+                        .get("distance"));
 
-	@Bean
-	public ModelMapper beanMapper() {
-		return new ModelMapper();
-	}
+                websocketBroadcast(ctx, locations.nearby(id, distance)
+                        .map(l -> l.toJson(mapper)));
+            });
+        };
+    }
 
-	@Bean
-	public Renderer<Location> locationRenderer() {
-		return new RendererSupport<Location>() {
-			@Override
-			public void render(Context ctx, Location loc) throws Exception {
-				ctx.render(json(loc));
-			}
-		};
-	}
+    @Bean
+    public ModelMapper beanMapper() {
+        return new ModelMapper();
+    }
 
-	public static void main(String[] args) {
-		SpringApplication.run(ProcessorApplication.class, args);
-	}
+    @Bean
+    public Renderer<Location> locationRenderer() {
+        return new RendererSupport<Location>() {
+            @Override
+            public void render(Context ctx, Location loc) throws Exception {
+                ctx.render(json(loc));
+            }
+        };
+    }
+
+    public static void main(String[] args) {
+        SpringApplication.run(ProcessorApplication.class, args);
+    }
 
 }
